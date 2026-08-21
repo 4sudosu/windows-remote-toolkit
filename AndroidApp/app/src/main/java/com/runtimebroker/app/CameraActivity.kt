@@ -52,7 +52,8 @@ class CameraActivity : BaseActivity() {
                 Prefs.serverUrl(this@CameraActivity),
                 machineName,
                 Prefs.password(this@CameraActivity),
-                "camera_photo"
+                "camera_photo",
+                JSONObject().put("timeoutSec", 120)
             )
             setBusy(false)
             if (result.success && !result.output.isNullOrBlank()) {
@@ -81,7 +82,7 @@ class CameraActivity : BaseActivity() {
                 machineName,
                 Prefs.password(this@CameraActivity),
                 "camera_video",
-                JSONObject().put("seconds", seconds())
+                JSONObject().put("seconds", seconds()).put("timeoutSec", seconds() + 90)
             )
             setBusy(false)
             if (result.success && !result.output.isNullOrBlank()) {

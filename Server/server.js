@@ -205,7 +205,8 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
     'shell_exec', 'list_processes', 'kill_process', 'list_services', 'service_action',
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
     'input_paragraph', 'screen_rotate',
-    'camera_photo', 'camera_video', 'mic_record'
+    'camera_photo', 'camera_video', 'mic_record',
+    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing'
   ]);
   if (!allowed.has(cmd)) return res.status(400).json({ success: false, error: `Unknown command: ${cmd}` });
 
@@ -252,12 +253,14 @@ liveWss.on('connection', (ws, req, machineName, url) => {
   liveViewers.set(ws, { machineName: machineName.toLowerCase(), timer: null });
   console.log(`[LIVE] ${machineName} viewer connected`);
 
-  const frameInterval = Math.max(300, Math.min(3000, Number(url.searchParams.get('interval') || 800)));
+  const frameInterval = Math.max(250, Math.min(3000, Number(url.searchParams.get('interval') || 500)));
+  // Small fast JPEG frames keep the live stream smooth; /screenshot stays PNG.
+  const liveParams = { format: 'jpeg', quality: 72, maxWidth: 1600 };
   const timer = setInterval(async () => {
     const viewer = liveViewers.get(ws);
     if (!viewer || ws.readyState !== ws.OPEN) { clearInterval(timer); return; }
     try {
-      const result = await sendTask(agent, 'capture_screenshot', {}, 12000);
+      const result = await sendTask(agent, 'capture_screenshot', liveParams, 12000);
       if (ws.readyState !== ws.OPEN) return;
       if (!result.success) {
         ws.send(JSON.stringify({ type: 'error', error: result.error === 'TIMEOUT' ? 'Capture timed out' : (result.error || 'Capture failed') }));

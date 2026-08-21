@@ -35,9 +35,12 @@
                 android:id="@+id/textInput"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="top"
                 android:hint="@string/paragraph_hint"
                 android:inputType="textMultiLine|textNoSuggestions"
-                android:maxLines="6"
+                android:minLines="6"
+                android:maxLines="14"
+                android:scrollbars="vertical"
                 android:textColor="?attr/colorOnSurface"
                 android:textColorHint="@color/offline_gray"
                 android:textSize="14sp" />
@@ -94,6 +97,26 @@
                 android:layout_marginTop="4dp"
                 android:text="@string/paragraph_enter_after"
                 android:textColor="?attr/colorOnSurface" />
+
+            <com.google.android.material.progressindicator.LinearProgressIndicator
+                android:id="@+id/progressBar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:indeterminate="false"
+                android:visibility="gone"
+                app:trackCornerRadius="4dp" />
+
+            <TextView
+                android:id="@+id/timeLeftText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textColor="@color/online_green"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:visibility="gone" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnStart"

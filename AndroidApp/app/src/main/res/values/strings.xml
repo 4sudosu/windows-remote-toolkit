@@ -420,4 +420,18 @@
     <!-- General -->
     <string name="permission_storage_rationale">Storage permission needed to select files.</string>
     <string name="permission_audio_rationale">Audio permission needed to play audio on device.</string>
+
+    <!-- New UI strings -->
+    <string name="rotate_view">ROTATE</string>
+    <string name="fill">FILL</string>
+    <string name="fit">FIT</string>
+    <string name="key_tab">TAB</string>
+    <string name="key_up">UP prev</string>
+    <string name="key_down">DOWN next</string>
+    <string name="key_ctrl_c">CTRL+C</string>
+    <string name="shell_no_suggestion">No matching command</string>
+    <string name="shell_elapsed">Running… %1$ds</string>
+    <string name="time_left">Time left:</string>
+    <string name="server_running_section">Running server</string>
+    <string name="server_stopped_line">Server is not running on this device.</string>
 </resources>

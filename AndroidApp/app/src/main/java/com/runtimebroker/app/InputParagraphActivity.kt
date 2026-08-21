@@ -1,15 +1,20 @@
 package com.runtimebroker.app
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
 import android.util.Base64
+import android.view.View
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
 import com.runtimebroker.app.api.RuntimeBrokerApi
 import com.runtimebroker.app.databinding.ActivityParagraphBinding
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import okhttp3.WebSocket
 import org.json.JSONObject
@@ -21,6 +26,7 @@ class InputParagraphActivity : BaseActivity() {
     private var machineName = ""
     private var ws: WebSocket? = null
     private var typingJob: Job? = null
+    private var progressJob: Job? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,8 +63,6 @@ class InputParagraphActivity : BaseActivity() {
     private fun updateEstimate() {
         val words = currentWords()
         binding.wordCount.text = getString(R.string.paragraph_words, words)
-        val over = words > 1000
-        binding.wordCount.setTextColor(getColor(if (over) R.color.error_red else R.color.offline_gray))
         val wpm = binding.wpmInput.text.toString().toIntOrNull()?.takeIf { it > 0 } ?: 50
         val secs = words * 60 / wpm
         binding.etaText.text = getString(R.string.eta_estimate, formatEta(secs))
@@ -82,17 +86,15 @@ class InputParagraphActivity : BaseActivity() {
             Toast.makeText(this, getString(R.string.empty_paragraph), Toast.LENGTH_SHORT).show()
             return
         }
+        // No word limit — long paragraphs are fine; the ETA scales with length.
         val words = currentWords()
-        if (words > 1000) {
-            Toast.makeText(this, getString(R.string.paragraph_too_long), Toast.LENGTH_SHORT).show()
-            return
-        }
         val wpm = binding.wpmInput.text.toString().toIntOrNull()?.takeIf { it > 0 } ?: 50
         val addEnter = binding.enterCheck.isChecked
+        val totalSecs = (words * 60.0 / wpm).toInt() + 30
 
         lifecycleScope.launch {
             binding.btnStart.isEnabled = false
-            binding.btnStopTyping.visibility = android.view.View.VISIBLE
+            binding.btnStopTyping.visibility = View.VISIBLE
             binding.statusText.text = getString(R.string.running)
             val result = RuntimeBrokerApi.command(
                 Prefs.serverUrl(this@InputParagraphActivity),
@@ -104,17 +106,46 @@ class InputParagraphActivity : BaseActivity() {
                     .put("wpm", wpm)
                     .put("addEnter", addEnter)
                     .put("async", true)
+                    .put("timeoutSec", totalSecs + 120)
             )
-            binding.btnStart.isEnabled = true
             if (result.success) {
                 val eta = formatEta(words * 60 / wpm)
                 binding.statusText.text = getString(R.string.typing_started, eta)
+                startProgressCountdown(words * 60 / wpm)
             } else {
+                binding.btnStart.isEnabled = true
+                binding.btnStopTyping.visibility = View.GONE
                 binding.statusText.text = getString(R.string.typing_failed, result.error ?: "error")
-                binding.btnStopTyping.visibility = android.view.View.GONE
                 Toast.makeText(this@InputParagraphActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
             }
         }
+    }
+
+    /** Live progress bar + seconds-left countdown while the agent types. */
+    private fun startProgressCountdown(totalSecs: Int) {
+        progressJob?.cancel()
+        binding.progressBar.max = totalSecs
+        binding.progressBar.progress = 0
+        binding.progressBar.visibility = View.VISIBLE
+        binding.timeLeftText.visibility = View.VISIBLE
+        progressJob = lifecycleScope.launch {
+            var elapsed = 0
+            while (isActive && elapsed < totalSecs) {
+                delay(1000)
+                elapsed++
+                binding.progressBar.progress = elapsed
+                binding.timeLeftText.text =
+                    "${getString(R.string.time_left)} ${formatEta(totalSecs - elapsed)}"
+            }
+            finishProgress()
+        }
+    }
+
+    private fun finishProgress() {
+        binding.progressBar.visibility = View.GONE
+        binding.timeLeftText.visibility = View.GONE
+        binding.btnStart.isEnabled = true
+        binding.btnStopTyping.visibility = View.GONE
     }
 
     private fun stopTyping() {
@@ -129,7 +160,8 @@ class InputParagraphActivity : BaseActivity() {
                 JSONObject()
             )
             binding.btnStopTyping.isEnabled = true
-            binding.btnStopTyping.visibility = android.view.View.GONE
+            progressJob?.cancel()
+            finishProgress()
             if (result.success) {
                 binding.statusText.text = getString(R.string.typing_stopped)
             } else {
@@ -142,24 +174,19 @@ class InputParagraphActivity : BaseActivity() {
     private fun startLiveView() {
         val url = Prefs.serverUrl(this)
         if (url.isBlank() || machineName.isBlank()) return
-        ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 1500,
+        ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 1000,
             object : com.runtimebroker.app.api.LiveListener {
                 override fun onConnected() {}
 
                 override fun onFrame(imageBase64: String) {
                     runOnUiThread {
-                        val bytes = Base64.decode(imageBase64, Base64.DEFAULT)
-                        val opts = BitmapFactory.Options()
-                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                        val maxSide = 1600
-                        var sample = 1
-                        while (max(bounds.outWidth, bounds.outHeight) / sample > maxSide) sample *= 2
-                        opts.inSampleSize = sample
-                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
-                        if (bmp != null) {
-                            binding.liveImage.setImageBitmap(bmp)
+                        val bytes = try {
+                            Base64.decode(imageBase64, Base64.DEFAULT)
+                        } catch (_: IllegalArgumentException) {
+                            return@runOnUiThread
                         }
+                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                        if (bmp != null) applyCropFill(bmp)
                     }
                 }
 
@@ -169,10 +196,32 @@ class InputParagraphActivity : BaseActivity() {
             })
     }
 
-    private fun max(a: Int, b: Int) = if (a > b) a else b
+    /**
+     * Scales the frame to FILL the preview box (center-crop) so the stream
+     * matches the agent's aspect ratio with no black bars top/bottom.
+     */
+    private fun applyCropFill(bmp: Bitmap) {
+        val view = binding.liveImage
+        val vw = view.width.toFloat()
+        val vh = view.height.toFloat()
+        if (vw <= 0 || vh <= 0) {
+            view.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+            view.setImageBitmap(bmp)
+            return
+        }
+        val scale = maxOf(vw / bmp.width, vh / bmp.height)
+        val matrix = Matrix().apply { postScale(scale, scale) }
+        val dx = (vw - bmp.width * scale) / 2f
+        val dy = (vh - bmp.height * scale) / 2f
+        matrix.postTranslate(dx, dy)
+        view.scaleType = android.widget.ImageView.ScaleType.MATRIX
+        view.imageMatrix = matrix
+        view.setImageBitmap(bmp)
+    }
 
     override fun onDestroy() {
         typingJob?.cancel()
+        progressJob?.cancel()
         try { ws?.close(1000, "bye") } catch (_: Exception) {}
         super.onDestroy()
     }

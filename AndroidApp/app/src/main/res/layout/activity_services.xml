@@ -34,6 +34,23 @@
         android:textColor="@color/offline_gray"
         android:textSize="13sp" />
 
+    <EditText
+        android:id="@+id/serviceSearch"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginBottom="4dp"
+        android:background="@drawable/bg_search"
+        android:drawableStart="@android:drawable/ic_menu_search"
+        android:hint="@string/search_hint"
+        android:imeOptions="actionSearch"
+        android:inputType="text"
+        android:maxLines="1"
+        android:paddingHorizontal="12dp"
+        android:textColor="?attr/colorOnSurface"
+        android:textColorHint="@color/offline_gray"
+        android:textSize="13sp" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/serviceList"
         android:layout_width="match_parent"

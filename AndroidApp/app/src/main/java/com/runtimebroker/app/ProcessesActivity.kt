@@ -43,6 +43,12 @@ class ProcessesActivity : BaseActivity() {
             applyCategory()
         }
 
+        binding.processSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = applyCategory()
+        })
+
         loadProcesses()
     }
 
@@ -84,7 +90,8 @@ class ProcessesActivity : BaseActivity() {
     }
 
     private fun applyCategory() {
-        val filtered = when (binding.catGroup.checkedChipId) {
+        val query = binding.processSearch.text.toString().trim().lowercase()
+        val base = when (binding.catGroup.checkedChipId) {
             R.id.catApps -> allEntries.filter { it.hasWindow }
             R.id.catBackground -> allEntries.filter { !it.hasWindow }
             R.id.catRam -> allEntries.sortedByDescending { it.memMB }
@@ -92,15 +99,21 @@ class ProcessesActivity : BaseActivity() {
             R.id.catInternet -> allEntries.filter { it.connections > 0 }.sortedByDescending { it.connections }
             else -> allEntries
         }
+        val filtered = if (query.isEmpty()) base else base.filter {
+            it.name.lowercase().contains(query) ||
+                (it.title ?: "").lowercase().contains(query) ||
+                it.pid.toString() == query
+        }
         adapter.submit(filtered)
         binding.emptyText.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
-        
+
         // Show/hide clear filter button
-        val isFiltered = binding.catGroup.checkedChipId != R.id.catAll
+        val isFiltered = binding.catGroup.checkedChipId != R.id.catAll || query.isNotEmpty()
         binding.btnClearFilter.visibility = if (isFiltered) View.VISIBLE else View.GONE
     }
 
     private fun clearFilter() {
+        binding.processSearch.setText("")
         binding.catGroup.check(R.id.catAll)
         binding.btnClearFilter.visibility = View.GONE
     }

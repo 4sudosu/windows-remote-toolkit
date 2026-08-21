@@ -112,7 +112,9 @@ class TransferFilesActivity : BaseActivity() {
                 try {
                     val bytes = contentResolver.openInputStream(uri)?.readAllBytes() ?: byteArrayOf()
                     val base64File = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
-                    
+                    // Generous timeout: ~1 min per MB, minimum 3 minutes.
+                    val timeoutSec = (bytes.size / (1024 * 1024) + 3) * 60
+
                     val result = RuntimeBrokerApi.command(
                         Prefs.serverUrl(this@TransferFilesActivity),
                         machineName,
@@ -121,6 +123,7 @@ class TransferFilesActivity : BaseActivity() {
                         JSONObject()
                             .put("file_base64", base64File)
                             .put("filename", uri.lastPathSegment ?: "file")
+                            .put("timeoutSec", timeoutSec)
                     )
                     
                     completed++

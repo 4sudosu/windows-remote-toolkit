@@ -17,7 +17,10 @@ internal static class Program
             switch (args[i])
             {
                 case "--capture" when i + 1 < args.Length:
-                    Environment.ExitCode = ScreenCapture.CaptureToFile(args[i + 1]);
+                    if (args.Length > i + 3 && int.TryParse(args[i + 2], out var mw) && int.TryParse(args[i + 3], out var q))
+                        Environment.ExitCode = ScreenCapture.CaptureToFile(args[i + 1], mw, q);
+                    else
+                        Environment.ExitCode = ScreenCapture.CaptureToFile(args[i + 1]);
                     return;
                 case "--input" when i + 2 < args.Length:
                     Environment.ExitCode = InteractiveActions.SendText(args[i + 1], args[i + 2]);
@@ -39,6 +42,9 @@ internal static class Program
                     return;
                 case "--mic" when i + 2 < args.Length:
                     Environment.ExitCode = InteractiveActions.RecordAudio(args[i + 1], args[i + 2]);
+                    return;
+                case "--playaudio" when i + 2 < args.Length:
+                    Environment.ExitCode = InteractiveActions.PlayAudio(args[i + 1], args[i + 2]);
                     return;
             }
         }

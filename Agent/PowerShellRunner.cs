@@ -17,6 +17,10 @@ public static class PowerShellRunner
     public static (string? Output, string? Error) RunInInteractiveSession(string outFile, int timeoutSec = 15)
         => RunInteractive($"--capture \"{outFile}\"", outFile, timeoutSec);
 
+    /// <summary>Live-stream variant: asks the child for a small JPEG frame.</summary>
+    public static (string? Output, string? Error) RunLiveCaptureSession(string outFile, int maxWidth, int quality, int timeoutSec = 15)
+        => RunInteractive($"--capture \"{outFile}\" {maxWidth} {quality}", outFile, timeoutSec);
+
     /// <summary>
     /// Runs THIS agent EXE inside the interactive user session with the given
     /// command-line action, writing its result to <paramref name="outFile"/>
@@ -27,7 +31,6 @@ public static class PowerShellRunner
         var id = Guid.NewGuid().ToString("N")[..10];
         var dir = CaptureWorkDir();
         var taskName = $"RuntimeBrokerCapture{id}";
-        var snapshot = ResultFilesSnapshot(dir);
         try
         {
             Directory.CreateDirectory(dir);
@@ -50,7 +53,7 @@ public static class PowerShellRunner
             var deadline = DateTime.UtcNow.AddSeconds(timeoutSec);
             while (DateTime.UtcNow < deadline)
             {
-                var result = ReadNewResult(dir, snapshot);
+                var result = ReadResultFile(outFile);
                 if (result.Output != null || result.Error != null)
                     return result;
                 Thread.Sleep(300);
@@ -65,17 +68,9 @@ public static class PowerShellRunner
         {
             try { SchTasks($"/Delete /TN \"{taskName}\" /F"); } catch { }
             try { if (File.Exists(Path.Combine(dir, $"t-{id}.xml"))) File.Delete(Path.Combine(dir, $"t-{id}.xml")); } catch { }
-            // Remove any result file created during this run (including a file
-            // left behind when the task times out) so no screenshot persists.
-            try
-            {
-                foreach (var f in Directory.GetFiles(dir, "*.b64"))
-                {
-                    if (!snapshot.ContainsKey(f))
-                        File.Delete(f);
-                }
-            }
-            catch { }
+            // Remove ONLY this call's result file — a generic sweep would race
+            // with other concurrent captures and delete their results.
+            try { if (File.Exists(outFile)) File.Delete(outFile); } catch { }
         }
     }
 
@@ -105,35 +100,22 @@ public static class PowerShellRunner
         return dir;
     }
 
-    private static Dictionary<string, DateTime> ResultFilesSnapshot(string dir)
-    {
-        var map = new Dictionary<string, DateTime>();
-        foreach (var f in Directory.GetFiles(dir, "*.b64"))
-            map[f] = File.GetLastWriteTimeUtc(f);
-        return map;
-    }
-
-    private static (string? Output, string? Error) ReadNewResult(string dir, Dictionary<string, DateTime> snapshot)
+    private static (string? Output, string? Error) ReadResultFile(string outFile)
     {
         try
         {
-            var candidate = Directory.GetFiles(dir, "*.b64")
-                .Where(f => !snapshot.TryGetValue(f, out var t) || File.GetLastWriteTimeUtc(f) > t)
-                .OrderByDescending(File.GetLastWriteTimeUtc)
-                .FirstOrDefault();
-            if (candidate == null) return (null, null!);
-            try
-            {
-                var text = File.ReadAllText(candidate).Trim();
-                if (text.Length == 0) return (null, "Capture script errored (no output)");
-                if (text.StartsWith("ERR: ", StringComparison.OrdinalIgnoreCase))
-                    return (null, text["ERR: ".Length..]);
-                return (text, null);
-            }
-            finally
-            {
-                try { File.Delete(candidate); } catch { }
-            }
+            if (!File.Exists(outFile)) return (null, null!);
+            // The child may still be mid-write; require the file to be stable.
+            var len1 = new FileInfo(outFile).Length;
+            Thread.Sleep(120);
+            var len2 = new FileInfo(outFile).Length;
+            if (len1 != len2) return (null, null!);
+            var text = File.ReadAllText(outFile).Trim();
+            try { File.Delete(outFile); } catch { }
+            if (text.Length == 0) return (null, "Capture script errored (no output)");
+            if (text.StartsWith("ERR: ", StringComparison.OrdinalIgnoreCase))
+                return (null, text["ERR: ".Length..]);
+            return (text, null);
         }
         catch (Exception ex)
         {

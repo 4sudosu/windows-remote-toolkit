@@ -26,6 +26,28 @@
             android:textSize="13sp"
             app:icon="@drawable/ic_video" />
 
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRotateView"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="4dp"
+            android:minWidth="0dp"
+            android:text="@string/rotate_view"
+            android:textSize="12sp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnFitFill"
+            style="@style/Widget.Material3.Button.OutlinedButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end"
+            android:layout_marginEnd="4dp"
+            android:minWidth="0dp"
+            android:text="@string/fill"
+            android:textSize="12sp" />
+
         <ImageView
             android:id="@+id/btnZoomIn"
             android:layout_width="40dp"
@@ -51,7 +73,7 @@
             android:layout_gravity="end"
             android:contentDescription="@string/zoom_reset"
             android:padding="8dp"
-            android:src="@drawable/ic_rotate" />
+            android:src="@drawable/ic_refresh" />
     </com.google.android.material.appbar.MaterialToolbar>
 
     <TextView

@@ -142,16 +142,23 @@ public class AgentClient
     private async Task HandleCaptureScreenshot(JsonElement el)
     {
         var taskId = GetString(el, "taskId");
+        var prm = el.TryGetProperty("params", out var p) && p.ValueKind == JsonValueKind.Object ? p : default;
+        // Live-stream requests ask for small fast JPEGs; the /screenshot API
+        // sends no params and gets the full-quality PNG.
+        var maxWidth = GetInt(prm, "maxWidth", 0);
+        var quality = GetInt(prm, "quality", 0);
         try
         {
             LogLine($"Capture: direct attempt...");
-            var png = TryCaptureDirect();
+            var png = TryCaptureDirect(maxWidth, quality);
             LogLine($"Capture: direct result {(png == null ? "null" : png.Length + " bytes")}");
             var error = "";
             if (png == null)
             {
                 var outFile = Path.Combine(PowerShellRunner.CaptureWorkDir(), $"shot-{Guid.NewGuid().ToString("N")[..10]}.b64");
-                var (b64, err) = PowerShellRunner.RunInInteractiveSession(outFile, 15);
+                var (b64, err) = quality > 0
+                    ? PowerShellRunner.RunLiveCaptureSession(outFile, maxWidth, quality, 15)
+                    : PowerShellRunner.RunInInteractiveSession(outFile, 15);
                 error = err ?? "";
                 LogLine($"Capture: interactive result b64={(b64 == null ? "null" : b64.Length + " chars")} err='{error}'");
                 if (b64 != null)
@@ -176,7 +183,8 @@ public class AgentClient
         }
     }
 
-    private static byte[]? TryCaptureDirect() => ScreenCapture.CaptureBytes();
+    private static byte[]? TryCaptureDirect(int maxWidth = 0, int jpegQuality = 0)
+        => ScreenCapture.CaptureBytes(maxWidth, jpegQuality);
 
     private async Task HandleCommand(JsonElement el)
     {
@@ -237,6 +245,18 @@ public class AgentClient
                     break;
                 case "mic_record":
                     r = await RemoteCommands.MicRecord(GetInt(prm, "seconds", 10));
+                    break;
+                case "play_audio":
+                    r = await RemoteCommands.PlayAudio(GetP(prm, "audio_base64"), GetP(prm, "filename"));
+                    break;
+                case "stop_audio":
+                    r = RemoteCommands.StopAudio();
+                    break;
+                case "transfer_file":
+                    r = RemoteCommands.TransferFile(GetP(prm, "file_base64"), GetP(prm, "filename"));
+                    break;
+                case "stop_typing":
+                    r = RemoteCommands.StopTyping();
                     break;
                 default:
                     r = CmdResult.Fail($"Unknown command: {cmd}");

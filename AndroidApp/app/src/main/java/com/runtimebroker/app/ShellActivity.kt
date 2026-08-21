@@ -8,15 +8,20 @@ import android.text.InputType
 import android.view.Gravity
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.ListView
 import android.widget.PopupWindow
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.button.MaterialButton
 import com.runtimebroker.app.api.RuntimeBrokerApi
 import com.runtimebroker.app.databinding.ActivityShellBinding
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
 
 class ShellActivity : BaseActivity() {
 
@@ -27,6 +32,23 @@ class ShellActivity : BaseActivity() {
     private var history = StringBuilder()
     private var commandHistory = mutableListOf<String>()
     private var historyIndex = -1
+
+    companion object {
+        /** Common cmd.exe / PowerShell commands offered as TAB-completion suggestions. */
+        private val SUGGESTIONS = listOf(
+            "dir", "cd ", "cls", "echo ", "type ", "copy ", "move ", "del ", "mkdir ", "rmdir ",
+            "ipconfig", "ipconfig /all", "ipconfig /flushdns", "ping ", "tracert ", "nslookup ",
+            "tasklist", "taskkill /PID ", "netstat -an", "netstat -ano",
+            "systeminfo", "whoami", "hostname", "ver", "driverquery",
+            "net user", "net stop ", "net start ", "sc query ", "wmic ",
+            "sfc /scannow", "chkdsk ", "shutdown /s /t 0", "shutdown /r /t 0",
+            "reg query ", "reg add ", "set", "path", "where ", "findstr ",
+            "robocopy ", "xcopy ", "curl ", "wget ", "certutil -hashfile ",
+            "powershell ", "Get-Process", "Get-Service", "Get-ChildItem ", "Set-ExecutionPolicy RemoteSigned",
+            "Get-NetAdapter", "Test-Connection ", "Stop-Process -Name ", "Start-Process "
+        )
+        private const val MAX_SUGGESTIONS = 8
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,6 +79,15 @@ class ShellActivity : BaseActivity() {
         binding.btnClear.setOnClickListener { clearOutput() }
         binding.btnHistory.setOnClickListener { showHistory() }
 
+        // Terminal-style keys
+        binding.btnKeyTab.setOnClickListener { tabComplete() }
+        binding.btnKeyUp.setOnClickListener { navigateHistory(-1) }
+        binding.btnKeyDown.setOnClickListener { navigateHistory(1) }
+        binding.btnKeyCtrlC.setOnClickListener {
+            binding.commandInput.setText("")
+            updateSuggestions()
+        }
+
         // Handle up/down arrow keys for history navigation
         binding.commandInput.setOnKeyListener { _, keyCode, event ->
             if (event.action == android.view.KeyEvent.ACTION_DOWN) {
@@ -73,6 +104,78 @@ class ShellActivity : BaseActivity() {
                 }
             } else false
         }
+
+        binding.commandInput.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = updateSuggestions()
+        })
+    }
+
+    /** Returns the token currently being typed (text after the last space). */
+    private fun currentToken(): String {
+        val text = binding.commandInput.text.toString()
+        val end = binding.commandInput.selectionEnd.coerceIn(0, text.length)
+        val start = text.lastIndexOf(' ', (end - 1).coerceAtLeast(0)) + 1
+        return text.substring(start, end)
+    }
+
+    private fun suggestionsFor(token: String): List<String> {
+        if (token.isEmpty()) return emptyList()
+        val lower = token.lowercase()
+        // Prefix matches first, then contains matches.
+        val prefix = SUGGESTIONS.filter { it.startsWith(lower) && it != lower }
+        val contains = SUGGESTIONS.filter { !it.startsWith(lower) && it.contains(lower) }
+        return (prefix + contains).take(MAX_SUGGESTIONS)
+    }
+
+    private fun updateSuggestions() {
+        val sugg = suggestionsFor(currentToken())
+        val row = binding.suggestionRow
+        row.removeAllViews()
+        if (sugg.isEmpty()) {
+            binding.suggestionStrip.visibility = View.GONE
+            return
+        }
+        binding.suggestionStrip.visibility = View.VISIBLE
+        sugg.forEach { s ->
+            val btn = MaterialButton(this).apply {
+                text = s.trim()
+                isAllCaps = false
+                textSize = 12f
+                minWidth = 0
+                insetTop = 0
+                insetBottom = 0
+                setTextColor(getColor(R.color.terminal_prompt))
+                setPadding((12 * resources.displayMetrics.density).toInt(), 0,
+                    (12 * resources.displayMetrics.density).toInt(), 0)
+                setOnClickListener { applySuggestion(s) }
+            }
+            row.addView(btn)
+            (btn.layoutParams as LinearLayout.LayoutParams).marginEnd =
+                (6 * resources.displayMetrics.density).toInt()
+        }
+    }
+
+    /** Replaces the token being typed with the chosen suggestion. */
+    private fun applySuggestion(suggestion: String) {
+        val text = binding.commandInput.text.toString()
+        val end = binding.commandInput.selectionEnd.coerceIn(0, text.length)
+        val start = text.lastIndexOf(' ', (end - 1).coerceAtLeast(0)) + 1
+        val newText = text.substring(0, start) + suggestion
+        binding.commandInput.setText(newText)
+        binding.commandInput.setSelection(newText.length)
+        updateSuggestions()
+    }
+
+    /** TAB completes using the first visible suggestion; shows the strip otherwise. */
+    private fun tabComplete() {
+        val sugg = suggestionsFor(currentToken())
+        when {
+            sugg.isNotEmpty() -> applySuggestion(sugg[0])
+            binding.suggestionStrip.visibility == View.VISIBLE -> {}
+            else -> Toast.makeText(this, R.string.shell_no_suggestion, Toast.LENGTH_SHORT).show()
+        }
     }
 
     private fun runQuick(command: String) {
@@ -84,7 +187,7 @@ class ShellActivity : BaseActivity() {
     private fun runCommand() {
         val command = binding.commandInput.text.toString().trim()
         if (command.isEmpty()) return
-        
+
         // Add to history
         if (commandHistory.isEmpty() || commandHistory.last() != command) {
             commandHistory.add(command)
@@ -96,12 +199,21 @@ class ShellActivity : BaseActivity() {
         runJob = lifecycleScope.launch {
             binding.btnRun.isEnabled = false
             binding.statusText.text = getString(R.string.running)
+            var elapsed = 0
+            val ticker = launch {
+                while (true) {
+                    delay(1000)
+                    elapsed++
+                    binding.statusText.text = getString(R.string.shell_elapsed, elapsed)
+                }
+            }
             val result = RuntimeBrokerApi.shell(
                 Prefs.serverUrl(this@ShellActivity),
                 machineName,
                 Prefs.password(this@ShellActivity),
                 command
             )
+            ticker.cancel()
             binding.btnRun.isEnabled = true
             history.append("${getString(R.string.shell_prompt)} $command\n")
             if (result.success) {
@@ -117,6 +229,7 @@ class ShellActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.done)
             binding.outputScroll.post { binding.outputScroll.fullScroll(View.FOCUS_DOWN) }
             binding.commandInput.text.clear()
+            updateSuggestions()
         }
     }
 
@@ -148,11 +261,11 @@ class ShellActivity : BaseActivity() {
             Toast.makeText(this, R.string.shell_history_empty, Toast.LENGTH_SHORT).show()
             return
         }
-        
+
         val listView = ListView(this)
         val adapter = ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, commandHistory.reversed())
         listView.adapter = adapter
-        
+
         val popup = PopupWindow(
             listView,
             (resources.displayMetrics.widthPixels * 0.9).toInt(),
@@ -161,7 +274,7 @@ class ShellActivity : BaseActivity() {
         )
         popup.setBackgroundDrawable(resources.getDrawable(android.R.color.white))
         popup.showAtLocation(binding.root, Gravity.CENTER, 0, 0)
-        
+
         listView.setOnItemClickListener { _, _, position, _ ->
             val cmd = commandHistory.reversed()[position]
             binding.commandInput.setText(cmd)

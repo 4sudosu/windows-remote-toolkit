@@ -69,7 +69,6 @@ class ScreenControlActivity : BaseActivity() {
         binding.btnWheelUp.setOnClickListener { sendMouse("wheel", delta = 120) }
         binding.btnWheelDown.setOnClickListener { sendMouse("wheel", delta = -120) }
         binding.btnRotateLocal.setOnClickListener { rotateLocalView() }
-        binding.btnRotateRemote.setOnClickListener { rotateRemoteScreen() }
 
         startStream()
     }
@@ -227,26 +226,6 @@ class ScreenControlActivity : BaseActivity() {
         binding.liveImage.drawable?.let { d ->
             if (d is android.graphics.drawable.BitmapDrawable) {
                 updateImageMatrix(d.bitmap)
-            }
-        }
-    }
-
-    private fun rotateRemoteScreen() {
-        val target = (localRotateDegrees + 90) % 360 // For remote, we send the target rotation
-        lifecycleScope.launch {
-            binding.statusText.text = getString(R.string.rotate_to)
-            val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@ScreenControlActivity),
-                machineName,
-                Prefs.password(this@ScreenControlActivity),
-                "screen_rotate",
-                JSONObject().put("degrees", target)
-            )
-            if (result.success) {
-                binding.statusText.text = getString(R.string.rotate_ok, target)
-            } else {
-                binding.statusText.text = getString(R.string.rotate_failed, result.error ?: "error")
-                Toast.makeText(this@ScreenControlActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
             }
         }
     }

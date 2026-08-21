@@ -90,8 +90,10 @@ public static class InteractiveActions
 
             var rng = new Random();
             var baseMs = (int)Math.Max(10, Math.Round(60000.0 / wpm / 5.0));
+            var stopFile = inFile + ".stop";
             foreach (var c in text)
             {
+                if (File.Exists(stopFile)) { try { File.Delete(stopFile); } catch { } File.WriteAllText(outFile, "STOPPED"); return 0; }
                 if (c == '\r') continue;
                 double mult;
                 if (",.!?;:…".IndexOf(c) >= 0) mult = 3.0 + rng.NextDouble() * 2.5;
@@ -192,12 +194,7 @@ public static class InteractiveActions
 
     private static async Task<string> CapturePhotoAsync()
     {
-        using var cap = new MediaCapture();
-        await cap.InitializeAsync(new MediaCaptureInitializationSettings
-        {
-            StreamingCaptureMode = StreamingCaptureMode.Video,
-            PhotoCaptureSource = PhotoCaptureSource.VideoPreview
-        });
+        using var cap = CreateInitializedCapture(StreamingCaptureMode.Video, PhotoCaptureSource.VideoPreview);
         var file = await CreateTempFile("wsm-camera.jpg");
         try
         {
@@ -209,11 +206,7 @@ public static class InteractiveActions
 
     private static async Task<string> RecordVideoAsync(int seconds)
     {
-        using var cap = new MediaCapture();
-        await cap.InitializeAsync(new MediaCaptureInitializationSettings
-        {
-            StreamingCaptureMode = StreamingCaptureMode.AudioAndVideo
-        });
+        using var cap = CreateInitializedCapture(StreamingCaptureMode.AudioAndVideo, PhotoCaptureSource.VideoPreview);
         var file = await CreateTempFile("wsm-video.mp4");
         try
         {
@@ -227,11 +220,7 @@ public static class InteractiveActions
 
     private static async Task<string> RecordAudioAsync(int seconds)
     {
-        using var cap = new MediaCapture();
-        await cap.InitializeAsync(new MediaCaptureInitializationSettings
-        {
-            StreamingCaptureMode = StreamingCaptureMode.Audio
-        });
+        using var cap = CreateInitializedCapture(StreamingCaptureMode.Audio, PhotoCaptureSource.VideoPreview);
         var file = await CreateTempFile("wsm-mic.m4a");
         try
         {
@@ -243,11 +232,129 @@ public static class InteractiveActions
         finally { try { await file.DeleteAsync(); } catch { } }
     }
 
+    /// <summary>
+    /// Initializes MediaCapture with a retry. Some machines fail the first init
+    /// with "no more endpoints available from the endpoint mapper" because the
+    /// camera frame-server mode is off; toggling EnableFrameServerMode in HKCU
+    /// and retrying fixes it without a reboot.
+    /// </summary>
+    private static MediaCapture CreateInitializedCapture(StreamingCaptureMode mode, PhotoCaptureSource photoSource)
+    {
+        Exception? last = null;
+        for (int attempt = 0; attempt < 2; attempt++)
+        {
+            if (attempt == 1) ToggleFrameServerMode();
+            try
+            {
+                var cap = new MediaCapture();
+                cap.InitializeAsync(new MediaCaptureInitializationSettings
+                {
+                    StreamingCaptureMode = mode,
+                    PhotoCaptureSource = photoSource
+                }).GetAwaiter().GetResult();
+                return cap;
+            }
+            catch (Exception ex) { last = ex; }
+        }
+        throw new InvalidOperationException($"Camera init failed: {last?.Message}");
+    }
+
+    private static void ToggleFrameServerMode()
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(
+                @"Software\Microsoft\Windows Media Foundation\Platform");
+            var cur = key.GetValue("EnableFrameServerMode");
+            key.SetValue("EnableFrameServerMode", cur is int i && i == 1 ? 0 : 1, Microsoft.Win32.RegistryValueKind.DWord);
+        }
+        catch { }
+        // Make sure "Let desktop apps access" is enabled for camera + mic,
+        // otherwise MediaCapture init fails regardless of frame-server mode.
+        foreach (var cap in new[] { "webcam", "microphone" })
+        {
+            try
+            {
+                using var k = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(
+                    $@"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore\nonPackaged\{cap}");
+                if (k.GetValue("Value")?.ToString() == "Deny")
+                    k.SetValue("Value", "Allow");
+            }
+            catch { }
+        }
+    }
+
     private static async Task<StorageFile> CreateTempFile(string name)
     {
         var folder = await StorageFolder.GetFolderFromPathAsync(PowerShellRunner.CaptureWorkDir());
         return await folder.CreateFileAsync(name, CreationCollisionOption.ReplaceExisting);
     }
+
+    /// <summary>
+    /// Plays an audio file (mp3/wav/wma/m4a) in the interactive session via the
+    /// classic Windows MCI (winmm) API — no WinRT event pump needed, so it
+    /// cannot hang. Blocks until playback ends, a stop-audio flag is seen, or
+    /// 2h elapse.
+    /// </summary>
+    public static int PlayAudio(string inFile, string outFile)
+    {
+        string? alias = null;
+        try
+        {
+            string path;
+            using (var doc = JsonDocument.Parse(File.ReadAllText(inFile)))
+            {
+                path = doc.RootElement.TryGetProperty("play", out var p) && p.ValueKind == JsonValueKind.String
+                    ? p.GetString() ?? "" : "";
+            }
+            if (string.IsNullOrEmpty(path) || !File.Exists(path))
+            {
+                File.WriteAllText(outFile, "ERR: Audio file missing");
+                return 1;
+            }
+
+            var stopFlag = Path.Combine(PowerShellRunner.CaptureWorkDir(), "stop-audio.flag");
+            try { File.Delete(stopFlag); } catch { }
+
+            alias = "rbaudio" + Guid.NewGuid().ToString("N")[..6];
+            var ext = Path.GetExtension(path).ToLowerInvariant();
+            var type = ext == ".wav" ? "waveaudio" : "mpegvideo";
+            Mci($"open \"{path}\" type {type} alias {alias}");
+            Mci($"play {alias}");
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.Elapsed < TimeSpan.FromHours(2))
+            {
+                if (File.Exists(stopFlag)) { try { File.Delete(stopFlag); } catch { } break; }
+                var mode = Mci($"status {alias} mode", 260);
+                if (mode.Contains("stopped", StringComparison.OrdinalIgnoreCase) ||
+                    mode.Contains("not ready", StringComparison.OrdinalIgnoreCase) ||
+                    mode.Length == 0) break;
+                Thread.Sleep(200);
+            }
+            File.WriteAllText(outFile, "OK");
+            return 0;
+        }
+        catch (Exception ex) { return WriteErr(outFile, ex); }
+        finally
+        {
+            if (alias != null)
+            {
+                try { Mci($"stop {alias}"); } catch { }
+                try { Mci($"close {alias}"); } catch { }
+            }
+        }
+    }
+
+    private static string Mci(string command, int bufferLen = 0)
+    {
+        var sb = bufferLen > 0 ? new StringBuilder(bufferLen) : null;
+        mciSendString(command, sb, sb?.Capacity ?? 0, IntPtr.Zero);
+        return sb?.ToString() ?? "";
+    }
+
+    [DllImport("winmm.dll", CharSet = CharSet.Auto)]
+    private static extern int mciSendString(string command, StringBuilder? retBuffer, int retLen, IntPtr hwndCallback);
 
     private static string EscapeForSendKeys(string s)
     {

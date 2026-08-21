@@ -45,7 +45,7 @@ class MicActivity : BaseActivity() {
                 machineName,
                 Prefs.password(this@MicActivity),
                 "mic_record",
-                JSONObject().put("seconds", seconds())
+                JSONObject().put("seconds", seconds()).put("timeoutSec", seconds() + 90)
             )
             binding.btnRecord.isEnabled = true
             if (result.success && !result.output.isNullOrBlank()) {

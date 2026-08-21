@@ -38,7 +38,26 @@ class ServicesActivity : BaseActivity() {
 
         binding.btnRefresh.setOnClickListener { loadServices() }
 
+        binding.serviceSearch.addTextChangedListener(object : android.text.TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun onTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
+            override fun afterTextChanged(s: android.text.Editable?) = applyFilter()
+        })
+
         loadServices()
+    }
+
+    private var allServices: List<ServiceEntry> = emptyList()
+
+    private fun applyFilter() {
+        val query = binding.serviceSearch.text.toString().trim().lowercase()
+        val filtered = if (query.isEmpty()) allServices else allServices.filter {
+            it.name.lowercase().contains(query) ||
+                it.displayName.lowercase().contains(query) ||
+                it.status.lowercase().contains(query)
+        }
+        adapter.submit(filtered)
+        binding.emptyText.visibility = if (filtered.isEmpty()) View.VISIBLE else View.GONE
     }
 
     private fun loadServices() {
@@ -64,9 +83,9 @@ class ServicesActivity : BaseActivity() {
                         )
                     }
                 } ?: emptyList()
-                adapter.submit(entries)
+                allServices = entries
+                applyFilter()
                 binding.statusText.text = getString(R.string.services_count, entries.size)
-                binding.emptyText.visibility = if (entries.isEmpty()) View.VISIBLE else View.GONE
             } else {
                 binding.statusText.text = result.error ?: "error"
                 Toast.makeText(this@ServicesActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()

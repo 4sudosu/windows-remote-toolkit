@@ -81,6 +81,7 @@ class PlayAudioActivity : BaseActivity() {
                     JSONObject()
                         .put("audio_base64", base64Audio)
                         .put("filename", uri.lastPathSegment ?: "audio.mp3")
+                        .put("timeoutSec", 600)
                 )
                 
                 binding.btnPlayAudio.isEnabled = true

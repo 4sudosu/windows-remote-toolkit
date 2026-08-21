@@ -337,6 +337,7 @@ public static class RemoteCommands
         try
         {
             File.WriteAllText(inFile, JsonSerializer.Serialize(new { text, wpm, addEnter }));
+            SetActiveParagraph(inFile);
             var (o, e) = await Task.Run(() => PowerShellRunner.RunInteractive($"--para \"{inFile}\" \"{outFile}\"", outFile, Math.Min(secs, 7200)));
             if (e != null) return CmdResult.Fail(e);
             return CmdResult.Ok(o ?? "Paragraph typed");
@@ -401,5 +402,83 @@ public static class RemoteCommands
             return CmdResult.Ok(output: b64, data: new { name = $"mic-{seconds}s.m4a" });
         }
         finally { try { File.Delete(inFile); } catch { } }
+    }
+
+    /// <summary>
+    /// Saves the uploaded audio to a shared temp path and asks the interactive
+    /// session to play it (the service itself cannot reach the user's audio
+    /// devices). The one-shot process stays alive until playback ends.
+    /// </summary>
+    public static async Task<CmdResult> PlayAudio(string base64, string filename)
+    {
+        if (string.IsNullOrWhiteSpace(base64)) return CmdResult.Fail("Empty audio payload");
+        try
+        {
+            var ext = Path.GetExtension(filename ?? "");
+            if (string.IsNullOrEmpty(ext) || ext.Length > 6) ext = ".mp3";
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "RuntimeBroker", "media");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, "play" + ext);
+            File.WriteAllBytes(path, Convert.FromBase64String(base64));
+            var inFile = Path.Combine(PowerShellRunner.CaptureWorkDir(), $"in-{Guid.NewGuid():N}".Replace("-", "")[..16] + ".json");
+            var outFile = Path.Combine(PowerShellRunner.CaptureWorkDir(), $"out-{Guid.NewGuid():N}".Replace("-", "")[..16] + ".b64");
+            try
+            {
+                File.WriteAllText(inFile, JsonSerializer.Serialize(new { play = path }));
+                var (o, e) = await Task.Run(() => PowerShellRunner.RunInteractive($"--playaudio \"{inFile}\" \"{outFile}\"", outFile, 7200));
+                if (e != null) return CmdResult.Fail(e);
+                return CmdResult.Ok(o ?? "Playback finished");
+            }
+            finally { try { File.Delete(inFile); } catch { } try { File.Delete(path); } catch { } }
+        }
+        catch (Exception ex) { return CmdResult.Fail(ex.Message); }
+    }
+
+    /// <summary>Asks the playing session process to stop current playback.</summary>
+    public static CmdResult StopAudio()
+    {
+        try
+        {
+            var flag = Path.Combine(PowerShellRunner.CaptureWorkDir(), "stop-audio.flag");
+            File.WriteAllText(flag, DateTime.UtcNow.ToString("O"));
+            return CmdResult.Ok("Stop requested");
+        }
+        catch (Exception ex) { return CmdResult.Fail(ex.Message); }
+    }
+
+    /// <summary>
+    /// Saves an uploaded file into the Public Downloads folder so every local
+    /// user can access it. Returns the saved path in output.
+    /// </summary>
+    public static CmdResult TransferFile(string base64, string filename)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(base64)) return CmdResult.Fail("Empty file payload");
+            var safeName = string.IsNullOrWhiteSpace(filename) ? $"file-{DateTime.Now:yyyyMMdd-HHmmss}" : filename;
+            foreach (var c in Path.GetInvalidFileNameChars()) safeName = safeName.Replace(c, '_');
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "RuntimeBroker", "Transfers");
+            Directory.CreateDirectory(dir);
+            var path = Path.Combine(dir, safeName);
+            File.WriteAllBytes(path, Convert.FromBase64String(base64));
+            return CmdResult.Ok($"Saved to {path}", data: new { path, size = new FileInfo(path).Length });
+        }
+        catch (Exception ex) { return CmdResult.Fail(ex.Message); }
+    }
+
+    // ---- paragraph typing progress / stop --------------------------------
+    private static string? _activeParaInFile;
+    private static readonly object ParaLock = new();
+
+    internal static void SetActiveParagraph(string inFile) { lock (ParaLock) _activeParaInFile = inFile; }
+
+    public static CmdResult StopTyping()
+    {
+        lock (ParaLock)
+        {
+            if (_activeParaInFile == null) return CmdResult.Fail("No typing session running");
+            try { File.WriteAllText(_activeParaInFile + ".stop", "stop"); return CmdResult.Ok("Stop requested"); }
+            catch (Exception ex) { return CmdResult.Fail(ex.Message); }
+        }
     }
 }
