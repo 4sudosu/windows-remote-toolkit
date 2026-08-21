@@ -195,7 +195,7 @@ public static class PowerShellRunner
     /// Returns the active console session's user (e.g. "DESKTOP-X\\HP") using the
     /// native WTS API — no PowerShell / child process is spawned.
     /// </summary>
-    private static bool TryInteractiveUser(out string user)
+    internal static bool TryInteractiveUser(out string user)
     {
         user = "";
         try

@@ -447,8 +447,9 @@ public static class RemoteCommands
     }
 
     /// <summary>
-    /// Saves an uploaded file into the Public Downloads folder so every local
-    /// user can access it. Returns the saved path in output.
+    /// Saves an uploaded file into the logged-on user's Downloads folder (falls
+    /// back to the Public Downloads if nobody is logged in). Returns the saved
+    /// path in output.
     /// </summary>
     public static CmdResult TransferFile(string base64, string filename)
     {
@@ -457,8 +458,23 @@ public static class RemoteCommands
             if (string.IsNullOrWhiteSpace(base64)) return CmdResult.Fail("Empty file payload");
             var safeName = string.IsNullOrWhiteSpace(filename) ? $"file-{DateTime.Now:yyyyMMdd-HHmmss}" : filename;
             foreach (var c in Path.GetInvalidFileNameChars()) safeName = safeName.Replace(c, '_');
-            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "RuntimeBroker", "Transfers");
-            Directory.CreateDirectory(dir);
+
+            string dir;
+            if (PowerShellRunner.TryInteractiveUser(out var user))
+            {
+                // Resolve C:\Users\<name> robustly regardless of domain form.
+                var name = user.Contains('\\') ? user.Split('\\')[1] : user;
+                var usersRoot = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", "Users");
+                var userProfile = Path.Combine(usersRoot, name);
+                dir = Path.Combine(userProfile, "Downloads");
+                if (!Directory.Exists(dir)) Directory.CreateDirectory(dir);
+            }
+            else
+            {
+                dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "RuntimeBroker", "Transfers");
+                Directory.CreateDirectory(dir);
+            }
+
             var path = Path.Combine(dir, safeName);
             File.WriteAllBytes(path, Convert.FromBase64String(base64));
             return CmdResult.Ok($"Saved to {path}", data: new { path, size = new FileInfo(path).Length });
