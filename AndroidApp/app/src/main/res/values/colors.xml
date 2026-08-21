@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="primary">#0F7BFF</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="primary_container">#0D3B66</color>
+    <color name="secondary">#00E5A0</color>
+    <color name="surface">#0A1122</color>
+    <color name="on_surface">#E6EAF5</color>
+    <color name="surface_container">#121B33</color>
+    <color name="surface_variant">#1A2440</color>
+    <color name="online_green">#00E5A0</color>
+    <color name="offline_gray">#7A87A0</color>
+    <color name="error_red">#FF6B6B</color>
+    <color name="card_stroke">#2A3550</color>
+    <color name="terminal_bg">#0B0B0F</color>
+    <color name="terminal_text">#33FF66</color>
+    <color name="terminal_prompt">#00E5FF</color>
+    <color name="terminal_dim">#55B877</color>
+    <color name="chip_selected">#0F7BFF</color>
+    <color name="cyan">#22D3EE</color>
+    <color name="divider">#1E293B</color>
+    <color name="white">#FFFFFF</color>
+    <color name="launcher_bg">#0B1120</color>
+    <color name="ic_launcher_background">#0A1122</color>
+</resources>

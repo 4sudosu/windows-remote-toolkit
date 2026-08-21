@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.RuntimeBroker" parent="Theme.Material3.Dark.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorOnPrimary">@color/on_primary</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorSecondary">@color/secondary</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/on_surface</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_variant</item>
+        <item name="colorSurfaceVariant">@color/surface_variant</item>
+        <item name="android:statusBarColor">@color/surface</item>
+        <item name="android:navigationBarColor">@color/surface</item>
+        <item name="android:windowBackground">@color/surface</item>
+        <item name="android:windowAnimationStyle">@style/WindowAnim.Fade</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Midnight" parent="Theme.RuntimeBroker" />
+    <style name="Theme.RuntimeBroker.Ocean" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#22D3EE</item>
+        <item name="colorOnPrimary">#04121A</item>
+        <item name="colorPrimaryContainer">#0B3B4F</item>
+        <item name="colorSecondary">#34D399</item>
+        <item name="colorSurface">#06121E</item>
+        <item name="colorOnSurface">#DFF3FB</item>
+        <item name="colorSurfaceContainer">#0E2233</item>
+        <item name="colorSurfaceContainerHigh">#16344A</item>
+        <item name="colorSurfaceVariant">#16344A</item>
+        <item name="android:statusBarColor">#06121E</item>
+        <item name="android:navigationBarColor">#06121E</item>
+        <item name="android:windowBackground">#06121E</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Cyber" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#A78BFA</item>
+        <item name="colorOnPrimary">#160B2B</item>
+        <item name="colorPrimaryContainer">#3B2A6E</item>
+        <item name="colorSecondary">#F472B6</item>
+        <item name="colorSurface">#12081F</item>
+        <item name="colorOnSurface">#EEE7FB</item>
+        <item name="colorSurfaceContainer">#1E1033</item>
+        <item name="colorSurfaceContainerHigh">#2A1A45</item>
+        <item name="colorSurfaceVariant">#2A1A45</item>
+        <item name="android:statusBarColor">#12081F</item>
+        <item name="android:navigationBarColor">#12081F</item>
+        <item name="android:windowBackground">#12081F</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Forest" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#4ADE80</item>
+        <item name="colorOnPrimary">#04180C</item>
+        <item name="colorPrimaryContainer">#14572F</item>
+        <item name="colorSecondary">#2DD4BF</item>
+        <item name="colorSurface">#07150D</item>
+        <item name="colorOnSurface">#E2F5E9</item>
+        <item name="colorSurfaceContainer">#0E2418</item>
+        <item name="colorSurfaceContainerHigh">#173723</item>
+        <item name="colorSurfaceVariant">#173723</item>
+        <item name="android:statusBarColor">#07150D</item>
+        <item name="android:navigationBarColor">#07150D</item>
+        <item name="android:windowBackground">#07150D</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Sunset" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#FB923C</item>
+        <item name="colorOnPrimary">#1E0D02</item>
+        <item name="colorPrimaryContainer">#5E2A08</item>
+        <item name="colorSecondary">#F87171</item>
+        <item name="colorSurface">#1C0F08</item>
+        <item name="colorOnSurface">#FCEBE1</item>
+        <item name="colorSurfaceContainer">#2B1A0F</item>
+        <item name="colorSurfaceContainerHigh">#3D2817</item>
+        <item name="colorSurfaceVariant">#3D2817</item>
+        <item name="android:statusBarColor">#1C0F08</item>
+        <item name="android:navigationBarColor">#1C0F08</item>
+        <item name="android:windowBackground">#1C0F08</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Berry" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#F472B6</item>
+        <item name="colorOnPrimary">#230314</item>
+        <item name="colorPrimaryContainer">#5E1B3E</item>
+        <item name="colorSecondary">#A78BFA</item>
+        <item name="colorSurface">#1C0714</item>
+        <item name="colorOnSurface">#FBE7F1</item>
+        <item name="colorSurfaceContainer">#2E1122</item>
+        <item name="colorSurfaceContainerHigh">#421B31</item>
+        <item name="colorSurfaceVariant">#421B31</item>
+        <item name="android:statusBarColor">#1C0714</item>
+        <item name="android:navigationBarColor">#1C0714</item>
+        <item name="android:windowBackground">#1C0714</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Slate" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#CBD5E1</item>
+        <item name="colorOnPrimary">#10151C</item>
+        <item name="colorPrimaryContainer">#2A3644</item>
+        <item name="colorSecondary">#94A3B8</item>
+        <item name="colorSurface">#0B0F14</item>
+        <item name="colorOnSurface">#E3E8EE</item>
+        <item name="colorSurfaceContainer">#141A22</item>
+        <item name="colorSurfaceContainerHigh">#1E2630</item>
+        <item name="colorSurfaceVariant">#1E2630</item>
+        <item name="android:statusBarColor">#0B0F14</item>
+        <item name="android:navigationBarColor">#0B0F14</item>
+        <item name="android:windowBackground">#0B0F14</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Amber" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#FBBF24</item>
+        <item name="colorOnPrimary">#1E1401</item>
+        <item name="colorPrimaryContainer">#5E4306</item>
+        <item name="colorSecondary">#FB923C</item>
+        <item name="colorSurface">#150F05</item>
+        <item name="colorOnSurface">#FAF1DC</item>
+        <item name="colorSurfaceContainer">#241B09</item>
+        <item name="colorSurfaceContainerHigh">#332812</item>
+        <item name="colorSurfaceVariant">#332812</item>
+        <item name="android:statusBarColor">#150F05</item>
+        <item name="android:navigationBarColor">#150F05</item>
+        <item name="android:windowBackground">#150F05</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Mint" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#2DD4BF</item>
+        <item name="colorOnPrimary">#041612</item>
+        <item name="colorPrimaryContainer">#0D5449</item>
+        <item name="colorSecondary">#A3E635</item>
+        <item name="colorSurface">#061410</item>
+        <item name="colorOnSurface">#DFF5EF</item>
+        <item name="colorSurfaceContainer">#0C241E</item>
+        <item name="colorSurfaceContainerHigh">#14372E</item>
+        <item name="colorSurfaceVariant">#14372E</item>
+        <item name="android:statusBarColor">#061410</item>
+        <item name="android:navigationBarColor">#061410</item>
+        <item name="android:windowBackground">#061410</item>
+    </style>
+
+    <style name="Theme.RuntimeBroker.Royal" parent="Theme.RuntimeBroker">
+        <item name="colorPrimary">#818CF8</item>
+        <item name="colorOnPrimary">#0B0F2B</item>
+        <item name="colorPrimaryContainer">#2E3A85</item>
+        <item name="colorSecondary">#34D399</item>
+        <item name="colorSurface">#0B1020</item>
+        <item name="colorOnSurface">#E8EAFB</item>
+        <item name="colorSurfaceContainer">#161C38</item>
+        <item name="colorSurfaceContainerHigh">#222A4E</item>
+        <item name="colorSurfaceVariant">#222A4E</item>
+        <item name="android:statusBarColor">#0B1020</item>
+        <item name="android:navigationBarColor">#0B1020</item>
+        <item name="android:windowBackground">#0B1020</item>
+    </style>
+
+    <style name="WindowAnim.Fade" parent="android:Animation">
+        <item name="android:windowEnterAnimation">@anim/fade_in</item>
+        <item name="android:windowExitAnimation">@anim/fade_out</item>
+    </style>
+
+</resources>

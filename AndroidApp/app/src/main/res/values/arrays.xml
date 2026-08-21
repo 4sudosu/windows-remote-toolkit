@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="notif_icon_names">
+        <item>Signal</item>
+        <item>Alert</item>
+        <item>Heart</item>
+        <item>Star</item>
+        <item>Bolt</item>
+        <item>Desktop</item>
+    </string-array>
+
+    <string-array name="notif_icon_res">
+        <item>ic_notify</item>
+        <item>ic_notify_alert</item>
+        <item>ic_notify_heart</item>
+        <item>ic_notify_star</item>
+        <item>ic_notify_bolt</item>
+        <item>ic_notify_desktop</item>
+    </string-array>
+
+    <string-array name="app_icon_names">
+        <item>Default</item>
+        <item>Emerald</item>
+        <item>Violet</item>
+        <item>Rose</item>
+        <item>Amber</item>
+        <item>Ocean</item>
+    </string-array>
+
+    <string-array name="app_icon_res">
+        <item>ic_launcher_default</item>
+        <item>ic_launcher_emerald</item>
+        <item>ic_launcher_violet</item>
+        <item>ic_launcher_rose</item>
+        <item>ic_launcher_amber</item>
+        <item>ic_launcher_ocean</item>
+    </string-array>
+
+    <string-array name="app_icon_alias">
+        <item>com.runtimebroker.app.launcher.Default</item>
+        <item>com.runtimebroker.app.launcher.Emerald</item>
+        <item>com.runtimebroker.app.launcher.Violet</item>
+        <item>com.runtimebroker.app.launcher.Rose</item>
+        <item>com.runtimebroker.app.launcher.Amber</item>
+        <item>com.runtimebroker.app.launcher.Ocean</item>
+    </string-array>
+</resources>

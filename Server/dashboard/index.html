@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Runtime Broker — Device Monitoring</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">📡 Runtime Broker</div>
+      <div class="topbar-right" id="agentsHeader"></div>
+    </header>
+
+    <main>
+      <section class="tab-panel active">
+        <div class="card">
+          <div class="section-head">
+            <h2>🖥️ Connected Devices</h2>
+            <input type="text" id="deviceSearch" class="search-input"
+                   placeholder="Search by hostname, serial, IP, model, user…" autocomplete="off">
+          </div>
+          <p class="muted">Live devices connected to the Runtime Broker server. Click <b>📸 Capture</b> on an online device to grab a full-screen shot and copy it to your clipboard.</p>
+          <div class="muted" id="agentsSummary"></div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>HOSTNAME</th>
+                  <th>IP ADDRESS</th>
+                  <th>SERIAL NUMBER</th>
+                  <th>AGENT VERSION</th>
+                  <th>MODEL</th>
+                  <th>STATUS</th>
+                  <th style="text-align: right;">ACTIONS</th>
+                </tr>
+              </thead>
+              <tbody id="monitorBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="monitorModal" class="modal-overlay" style="display:none;">
+    <div class="modal" style="width:min(1100px,100%);">
+      <div class="modal-head">
+        <h2 id="monitorModalTitle">📷 Screen Capture</h2>
+        <button class="btn-clear" onclick="closeMonitorModal()">✕</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+        <span class="muted" id="monitorCaptureInfo">—</span>
+        <select id="monitorRefreshSel" class="search-input" style="width:150px;" title="Auto re-capture">
+          <option value="0">No auto-refresh</option>
+          <option value="3">Refresh every 3s</option>
+          <option value="5">Refresh every 5s</option>
+          <option value="10">Refresh every 10s</option>
+        </select>
+        <button class="btn-fix" onclick="captureMonitorNow()">📸 Capture Now</button>
+        <button class="btn-ghost" onclick="copyMonitorImage()">📋 Copy to Clipboard</button>
+      </div>
+      <div id="monitorImgWrap" style="max-height:74vh;overflow:auto;border:1px solid #2a3550;border-radius:10px;background:#0d1526;">
+        <div class="empty-note" id="monitorPlaceholder">Click "Capture Now" to take a live screenshot of this machine.</div>
+        <img id="monitorImg" style="display:none;width:100%;" alt="Screen capture">
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

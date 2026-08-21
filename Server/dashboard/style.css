@@ -1,0 +1,162 @@
+:root {
+  --bg: #0b1120;
+  --bg-soft: #111a2e;
+  --card: #131d31;
+  --card-2: #172238;
+  --border: #1e293b;
+  --border-2: #2b3a55;
+  --text: #f8fafc;
+  --muted: #94a3b8;
+  --dim: #64748b;
+  --primary: #3b82f6;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --cyan: #22d3ee;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+.app { max-width: 1200px; margin: 0 auto; padding: 24px 20px 60px; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border);
+}
+.brand { font-size: 1.4rem; font-weight: 800; letter-spacing: 0.2px; }
+.brand span { color: var(--primary); }
+.topbar-right { font-size: 0.85rem; color: var(--green); font-weight: 600; }
+
+.tab-panel { display: block; animation: fadeIn 0.25s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+.section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.section-head h2 { font-size: 1.05rem; font-weight: 700; }
+.muted { color: var(--muted); font-size: 0.82rem; margin-bottom: 12px; }
+
+.search-input {
+  background: var(--bg-soft);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  outline: none;
+  min-width: 240px;
+}
+.search-input::placeholder { color: var(--dim); }
+.search-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25); }
+
+.btn-clear {
+  background: var(--card-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-clear:hover { background: var(--red); color: #fff; }
+
+.btn-fix {
+  background: var(--card-2);
+  color: var(--green);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.btn-fix:hover { background: var(--primary); color: #fff; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: var(--border-2); }
+
+.table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+thead th {
+  text-align: left;
+  padding: 12px 14px;
+  font-size: 0.72rem;
+  letter-spacing: 0.6px;
+  color: var(--muted);
+  background: var(--bg-soft);
+  position: sticky; top: 0;
+  white-space: nowrap;
+}
+tbody td { padding: 11px 14px; border-top: 1px solid var(--border); vertical-align: middle; }
+tbody tr:hover { background: rgba(148, 163, 184, 0.04); }
+.empty-row { text-align: center; color: var(--dim); padding: 30px !important; }
+
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(3, 7, 18, 0.72);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; padding: 24px;
+}
+.modal {
+  background: var(--card);
+  border: 1px solid var(--border-2);
+  border-radius: 14px;
+  padding: 22px;
+  width: min(680px, 100%);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-x: hidden;
+  min-width: 0;
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.modal-head h2 { font-size: 1.15rem; margin: 0; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.badge-resolved { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.badge-offline  { background: rgba(100, 116, 139, 0.15); color: var(--dim); }
+
+.empty-note { color: var(--dim); font-size: 0.85rem; text-align: center; padding: 24px 0; }
