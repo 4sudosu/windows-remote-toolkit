@@ -80,6 +80,7 @@ wss.on('connection', (ws, req) => {
   });
 
   ws.on('close', () => {
+    failPendingFor(ws);
     const machineName = ws.machineName;
     if (machineName) {
       agents.delete(machineName);
@@ -136,10 +137,23 @@ function sendTask(agent, cmd, params, timeoutMs = 35000) {
       }
     }, timeoutMs);
     pending.set(taskId, {
+      agentWs: agent.ws,
       resolve: (r) => { clearTimeout(timer); resolve(r); }
     });
-    agent.ws.send(JSON.stringify({ type: 'cmd', taskId, cmd, params: params || {} }));
+    try { agent.ws.send(JSON.stringify({ type: 'cmd', taskId, cmd, params: params || {} })); }
+    catch { pending.delete(taskId); resolve({ success: false, error: 'Agent offline' }); }
   });
+}
+
+// If an agent disconnects, immediately fail every task waiting on it so
+// callers get an error instead of hanging until the full timeout.
+function failPendingFor(ws) {
+  for (const [taskId, task] of pending) {
+    if (task.agentWs === ws) {
+      pending.delete(taskId);
+      task.resolve({ success: false, error: 'Agent offline' });
+    }
+  }
 }
 
 // ── auth + agent lookup helpers ──────────────────────────────────────────

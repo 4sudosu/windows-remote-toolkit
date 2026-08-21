@@ -43,15 +43,59 @@
         android:background="@color/terminal_bg"
         android:fillViewport="true">
 
-        <TextView
-            android:id="@+id/outputText"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:padding="12dp"
-            android:textColor="@color/terminal_text"
-            android:textIsSelectable="true"
-            android:textSize="13sp" />
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/outputText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:padding="12dp"
+                android:textColor="@color/terminal_text"
+                android:textIsSelectable="true"
+                android:textSize="13sp" />
+
+            <!-- Inline command line — typing happens directly on the terminal -->
+            <LinearLayout
+                android:id="@+id/inputRow"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingStart="12dp"
+                android:paddingEnd="12dp"
+                android:paddingBottom="12dp">
+
+                <TextView
+                    android:id="@+id/promptText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:text="@string/shell_prompt"
+                    android:textColor="@color/terminal_prompt"
+                    android:textSize="15sp"
+                    android:textStyle="bold" />
+
+                <EditText
+                    android:id="@+id/commandInput"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_marginStart="6dp"
+                    android:background="@null"
+                    android:fontFamily="monospace"
+                    android:hint="@string/terminal_type_cmd"
+                    android:inputType="textNoSuggestions|textVisiblePassword"
+                    android:maxLines="1"
+                    android:singleLine="true"
+                    android:textColor="@color/terminal_text"
+                    android:textColorHint="@color/terminal_dim"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </LinearLayout>
     </ScrollView>
 
     <TextView
@@ -189,47 +233,4 @@
                 android:textSize="12sp" />
         </LinearLayout>
     </HorizontalScrollView>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp">
-
-        <TextView
-            android:id="@+id/promptText"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:text="@string/shell_prompt"
-            android:textColor="@color/terminal_prompt"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <EditText
-            android:id="@+id/commandInput"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="6dp"
-            android:background="@null"
-            android:hint="@string/terminal_type_cmd"
-            android:inputType="textNoSuggestions|textVisiblePassword"
-            android:maxLines="1"
-            android:singleLine="true"
-            android:textColor="@color/terminal_text"
-            android:textColorHint="@color/terminal_dim"
-            android:textSize="15sp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnRun"
-            style="@style/Widget.Material3.Button.TonalButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:minWidth="0dp"
-            android:text="@string/run"
-            android:textSize="13sp" />
-    </LinearLayout>
 </LinearLayout>

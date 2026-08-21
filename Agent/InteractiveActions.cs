@@ -1,4 +1,4 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
 using Windows.Media.Capture;
@@ -73,7 +73,7 @@ public static class InteractiveActions
 
     /// <summary>
     /// Types a whole paragraph with human-like timing: average pacing derived
-    /// from WPM (5 chars ≈ 1 word), random per-character jitter, longer pauses
+    /// from WPM (5 chars â‰ˆ 1 word), random per-character jitter, longer pauses
     /// after punctuation and at newlines.
     /// </summary>
     public static int SendParagraph(string inFile, string outFile)
@@ -96,7 +96,7 @@ public static class InteractiveActions
                 if (File.Exists(stopFile)) { try { File.Delete(stopFile); } catch { } File.WriteAllText(outFile, "STOPPED"); return 0; }
                 if (c == '\r') continue;
                 double mult;
-                if (",.!?;:…".IndexOf(c) >= 0) mult = 3.0 + rng.NextDouble() * 2.5;
+                if (",.!?;:â€¦".IndexOf(c) >= 0) mult = 3.0 + rng.NextDouble() * 2.5;
                 else if (c == '\n') mult = 4.0 + rng.NextDouble() * 2.0;
                 else if (char.IsWhiteSpace(c)) mult = 0.9 + rng.NextDouble() * 0.6;
                 else mult = 0.55 + rng.NextDouble() * 0.9;
@@ -198,24 +198,38 @@ public static class InteractiveActions
         var file = await CreateTempFile("wsm-camera.jpg");
         try
         {
-            await cap.CapturePhotoToStorageFileAsync(ImageEncodingProperties.CreateJpeg(), file);
+            await WinRt(cap.CapturePhotoToStorageFileAsync(ImageEncodingProperties.CreateJpeg(), file), 30);
             return Convert.ToBase64String(File.ReadAllBytes(file.Path));
         }
-        finally { try { await file.DeleteAsync(); } catch { } }
+        finally { try { await WinRt(file.DeleteAsync(), 5); } catch { } }
+    }
+
+    internal static StreamWriter TraceLog()
+    {
+        var path = Path.Combine(PowerShellRunner.CaptureWorkDir(), "trace.log");
+        return new StreamWriter(path, append: true) { AutoFlush = true };
     }
 
     private static async Task<string> RecordVideoAsync(int seconds)
     {
+        using var trace = TraceLog();
+        trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} video start pid={Environment.ProcessId}");
         using var cap = CreateInitializedCapture(StreamingCaptureMode.AudioAndVideo, PhotoCaptureSource.VideoPreview);
+        trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} init done");
         var file = await CreateTempFile("wsm-video.mp4");
+        trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} tempfile {file.Path}");
         try
         {
-            await cap.StartRecordToStorageFileAsync(MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD720p), file);
+            await WinRt(cap.StartRecordToStorageFileAsync(MediaEncodingProfile.CreateMp4(VideoEncodingQuality.HD720p), file), 20);
+            trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} recording started");
             await Task.Delay(Math.Max(1, Math.Min(seconds, 120)) * 1000);
-            await cap.StopRecordAsync();
-            return Convert.ToBase64String(File.ReadAllBytes(file.Path));
+            await WinRt(cap.StopRecordAsync(), 20);
+            trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} stopped");
+            var b64 = Convert.ToBase64String(File.ReadAllBytes(file.Path));
+            trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} encoded {b64.Length}");
+            return b64;
         }
-        finally { try { await file.DeleteAsync(); } catch { } }
+        finally { try { await WinRt(file.DeleteAsync(), 5); } catch { } }
     }
 
     private static async Task<string> RecordAudioAsync(int seconds)
@@ -224,12 +238,34 @@ public static class InteractiveActions
         var file = await CreateTempFile("wsm-mic.m4a");
         try
         {
-            await cap.StartRecordToStorageFileAsync(MediaEncodingProfile.CreateM4a(AudioEncodingQuality.High), file);
+            await WinRt(cap.StartRecordToStorageFileAsync(MediaEncodingProfile.CreateM4a(AudioEncodingQuality.High), file), 20);
             await Task.Delay(Math.Max(1, Math.Min(seconds, 300)) * 1000);
-            await cap.StopRecordAsync();
+            await WinRt(cap.StopRecordAsync(), 20);
             return Convert.ToBase64String(File.ReadAllBytes(file.Path));
         }
-        finally { try { await file.DeleteAsync(); } catch { } }
+        finally { try { await WinRt(file.DeleteAsync(), 5); } catch { } }
+    }
+
+    /// <summary>
+    /// Bounds ANY WinRT IAsyncOperation/Action so a deadlocked call becomes a
+    /// fast error instead of a permanently hung capture process.
+    /// </summary>
+    private static async Task<T> WinRt<T>(Windows.Foundation.IAsyncOperation<T> op, int timeoutSec)
+    {
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
+        var task = op.AsTask(cancel.Token);
+        var finished = await Task.WhenAny(task, Task.Delay(Timeout.InfiniteTimeSpan, cancel.Token));
+        if (finished != task) throw new TimeoutException($"WinRT operation timed out after {timeoutSec}s");
+        return await task;
+    }
+
+    private static async Task WinRt(Windows.Foundation.IAsyncAction action, int timeoutSec)
+    {
+        using var cancel = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSec));
+        var task = action.AsTask(cancel.Token);
+        var finished = await Task.WhenAny(task, Task.Delay(Timeout.InfiniteTimeSpan, cancel.Token));
+        if (finished != task) throw new TimeoutException($"WinRT operation timed out after {timeoutSec}s");
+        await task;
     }
 
     /// <summary>
@@ -244,17 +280,27 @@ public static class InteractiveActions
         for (int attempt = 0; attempt < 2; attempt++)
         {
             if (attempt == 1) ToggleFrameServerMode();
+            var cap = new MediaCapture();
             try
             {
-                var cap = new MediaCapture();
-                cap.InitializeAsync(new MediaCaptureInitializationSettings
+                // InitializeAsync occasionally deadlocks â€” bound it so the
+                // one-shot process can never hang around forever.
+                var initTask = cap.InitializeAsync(new MediaCaptureInitializationSettings
                 {
                     StreamingCaptureMode = mode,
                     PhotoCaptureSource = photoSource
-                }).GetAwaiter().GetResult();
+                }).AsTask();
+                var finished = Task.WhenAny(initTask, Task.Delay(TimeSpan.FromSeconds(15))).GetAwaiter().GetResult();
+                if (finished != initTask)
+                    throw new TimeoutException("Camera init timed out after 15s");
+                initTask.GetAwaiter().GetResult();
                 return cap;
             }
-            catch (Exception ex) { last = ex; }
+            catch (Exception ex)
+            {
+                last = ex;
+                try { cap.Dispose(); } catch { }
+            }
         }
         throw new InvalidOperationException($"Camera init failed: {last?.Message}");
     }
@@ -286,13 +332,16 @@ public static class InteractiveActions
 
     private static async Task<StorageFile> CreateTempFile(string name)
     {
-        var folder = await StorageFolder.GetFolderFromPathAsync(PowerShellRunner.CaptureWorkDir());
-        return await folder.CreateFileAsync(name, CreationCollisionOption.ReplaceExisting);
+        // Unique name per call â€” a fixed name collides with any overlapping or
+        // orphaned recording still holding the file open ("file in use").
+        var unique = $"{Path.GetFileNameWithoutExtension(name)}-{Guid.NewGuid().ToString("N")[..8]}{Path.GetExtension(name)}";
+        var folder = await WinRt(StorageFolder.GetFolderFromPathAsync(PowerShellRunner.CaptureWorkDir()), 15);
+        return await WinRt(folder.CreateFileAsync(unique, CreationCollisionOption.ReplaceExisting), 10);
     }
 
     /// <summary>
     /// Plays an audio file (mp3/wav/wma/m4a) in the interactive session via the
-    /// classic Windows MCI (winmm) API — no WinRT event pump needed, so it
+    /// classic Windows MCI (winmm) API â€” no WinRT event pump needed, so it
     /// cannot hang. Blocks until playback ends, a stop-audio flag is seen, or
     /// 2h elapse.
     /// </summary>
@@ -405,7 +454,7 @@ public static class InteractiveActions
     [DllImport("user32.dll")]
     private static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, UIntPtr dwExtraInfo);
 
-    // ── screen rotation (DEVMODE / ChangeDisplaySettingsEx) ────────────────
+    // â”€â”€ screen rotation (DEVMODE / ChangeDisplaySettingsEx) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private const int ENUM_CURRENT_SETTINGS = -1;
     private const int CDS_UPDATEREGISTRY = 0x00000001;
     private const int DISP_CHANGE_SUCCESSFUL = 0;

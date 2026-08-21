@@ -52,6 +52,7 @@ class InputParagraphActivity : BaseActivity() {
         binding.btnStopTyping.setOnClickListener { stopTyping() }
 
         updateEstimate()
+        setupLiveGestures()
         startLiveView()
     }
 
@@ -186,7 +187,12 @@ class InputParagraphActivity : BaseActivity() {
                             return@runOnUiThread
                         }
                         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bmp != null) applyCropFill(bmp)
+                        if (bmp != null) {
+                            val old = liveBitmap
+                            liveBitmap = bmp
+                            old?.recycle()
+                            updateLiveMatrix()
+                        }
                     }
                 }
 
@@ -196,27 +202,84 @@ class InputParagraphActivity : BaseActivity() {
             })
     }
 
-    /**
-     * Scales the frame to FILL the preview box (center-crop) so the stream
-     * matches the agent's aspect ratio with no black bars top/bottom.
-     */
-    private fun applyCropFill(bmp: Bitmap) {
+    // ---- live preview: whole agent screen, draggable + pinch-zoom --------
+    private var liveBitmap: Bitmap? = null
+    private val liveMatrix = Matrix()
+    private var liveScale = 1.0f
+    private var livePanX = 0f
+    private var livePanY = 0f
+    private var lastX = 0f
+    private var lastY = 0f
+    private var scaleDetector: android.view.ScaleGestureDetector? = null
+
+    private fun setupLiveGestures() {
+        scaleDetector = android.view.ScaleGestureDetector(this,
+            object : android.view.ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(d: android.view.ScaleGestureDetector): Boolean {
+                    liveScale = (liveScale * d.scaleFactor).coerceIn(1f, 6f)
+                    if (liveScale <= 1.001f) { livePanX = 0f; livePanY = 0f }
+                    clampLivePan()
+                    updateLiveMatrix()
+                    return true
+                }
+            })
+        binding.liveImage.setOnTouchListener { _, event ->
+            scaleDetector?.onTouchEvent(event)
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> { lastX = event.x; lastY = event.y }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (liveScale > 1.001f) {
+                        livePanX += event.x - lastX
+                        livePanY += event.y - lastY
+                        clampLivePan()
+                        updateLiveMatrix()
+                    }
+                    lastX = event.x; lastY = event.y
+                }
+            }
+            true
+        }
+        binding.liveImage.scaleType = android.widget.ImageView.ScaleType.MATRIX
+    }
+
+    private fun clampLivePan() {
+        val bmp = liveBitmap ?: return
+        val vw = binding.liveImage.width.toFloat()
+        val vh = binding.liveImage.height.toFloat()
+        if (vw <= 0 || vh <= 0) return
+        val s = minOf(vw / bmp.width, vh / bmp.height) * liveScale
+        val overX = ((bmp.width * s - vw) / 2f).coerceAtLeast(0f)
+        val overY = ((bmp.height * s - vh) / 2f).coerceAtLeast(0f)
+        livePanX = livePanX.coerceIn(-overX, overX)
+        livePanY = livePanY.coerceIn(-overY, overY)
+    }
+
+    /** Fits the WHOLE agent frame in the preview — correct aspect ratio, no crop. */
+    private fun updateLiveMatrix() {
+        val bmp = liveBitmap ?: return
         val view = binding.liveImage
         val vw = view.width.toFloat()
         val vh = view.height.toFloat()
         if (vw <= 0 || vh <= 0) {
-            view.scaleType = android.widget.ImageView.ScaleType.CENTER_CROP
+            view.scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
             view.setImageBitmap(bmp)
             return
         }
-        val scale = maxOf(vw / bmp.width, vh / bmp.height)
-        val matrix = Matrix().apply { postScale(scale, scale) }
-        val dx = (vw - bmp.width * scale) / 2f
-        val dy = (vh - bmp.height * scale) / 2f
-        matrix.postTranslate(dx, dy)
-        view.scaleType = android.widget.ImageView.ScaleType.MATRIX
-        view.imageMatrix = matrix
+        val base = minOf(vw / bmp.width, vh / bmp.height)
+        val s = base * liveScale
+        liveMatrix.reset()
+        liveMatrix.postScale(s, s)
+        liveMatrix.postTranslate(
+            (vw - bmp.width * s) / 2f + livePanX,
+            (vh - bmp.height * s) / 2f + livePanY
+        )
+        view.imageMatrix = liveMatrix
         view.setImageBitmap(bmp)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) updateLiveMatrix()
     }
 
     override fun onDestroy() {

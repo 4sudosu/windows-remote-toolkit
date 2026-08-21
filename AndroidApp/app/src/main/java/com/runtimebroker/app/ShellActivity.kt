@@ -64,7 +64,6 @@ class ShellActivity : BaseActivity() {
         history.append("Type a command below and press Run.\n\n")
         binding.outputText.text = history.toString()
 
-        binding.btnRun.setOnClickListener { runCommand() }
         binding.commandInput.setOnEditorActionListener { _, _, _ ->
             runCommand()
             true
@@ -197,7 +196,7 @@ class ShellActivity : BaseActivity() {
 
         runJob?.cancel()
         runJob = lifecycleScope.launch {
-            binding.btnRun.isEnabled = false
+            binding.commandInput.isEnabled = false
             binding.statusText.text = getString(R.string.running)
             var elapsed = 0
             val ticker = launch {
@@ -214,7 +213,7 @@ class ShellActivity : BaseActivity() {
                 command
             )
             ticker.cancel()
-            binding.btnRun.isEnabled = true
+            binding.commandInput.isEnabled = true
             history.append("${getString(R.string.shell_prompt)} $command\n")
             if (result.success) {
                 val out = result.output?.takeIf { it.isNotBlank() } ?: getString(R.string.no_output)

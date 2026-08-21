@@ -47,33 +47,6 @@
             android:minWidth="0dp"
             android:text="@string/fill"
             android:textSize="12sp" />
-
-        <ImageView
-            android:id="@+id/btnZoomIn"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="end"
-            android:contentDescription="@string/zoom_in"
-            android:padding="8dp"
-            android:src="@drawable/ic_zoom_in" />
-
-        <ImageView
-            android:id="@+id/btnZoomOut"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="end"
-            android:contentDescription="@string/zoom_out"
-            android:padding="8dp"
-            android:src="@drawable/ic_zoom_out" />
-
-        <ImageView
-            android:id="@+id/btnZoomReset"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_gravity="end"
-            android:contentDescription="@string/zoom_reset"
-            android:padding="8dp"
-            android:src="@drawable/ic_refresh" />
     </com.google.android.material.appbar.MaterialToolbar>
 
     <TextView

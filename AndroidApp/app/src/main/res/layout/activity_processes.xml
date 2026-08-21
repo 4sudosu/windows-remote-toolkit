@@ -53,7 +53,7 @@
         android:layout_marginBottom="4dp"
         android:background="@drawable/bg_search"
         android:drawableStart="@android:drawable/ic_menu_search"
-        android:hint="@string/search_hint"
+        android:hint="@string/search_process_hint"
         android:imeOptions="actionSearch"
         android:inputType="text"
         android:maxLines="1"

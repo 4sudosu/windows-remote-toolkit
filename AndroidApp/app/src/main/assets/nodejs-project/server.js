@@ -78,6 +78,7 @@ wss.on('connection', (ws, req) => {
     handleMessage(ws, msg);
   });
   ws.on('close', () => {
+    failPendingFor(ws);
     const machineName = ws.machineName;
     if (machineName) {
       agents.delete(machineName);
@@ -133,11 +134,23 @@ function sendTask(agent, cmd, params, timeoutMs) {
       }
     }, timeoutMs);
     pending.set(taskId, {
+      agentWs: agent.ws,
       resolve: (r) => { clearTimeout(timer); resolve(r); }
     });
     try { agent.ws.send(JSON.stringify({ type: 'cmd', taskId: taskId, cmd: cmd, params: params || {} })); }
     catch (e) { pending.delete(taskId); resolve({ success: false, error: 'Agent offline' }); }
   });
+}
+
+// If an agent disconnects, immediately fail every task waiting on it so
+// callers get an error instead of hanging until the full timeout.
+function failPendingFor(ws) {
+  for (const [taskId, task] of pending) {
+    if (task.agentWs === ws) {
+      pending.delete(taskId);
+      task.resolve({ success: false, error: 'Agent offline' });
+    }
+  }
 }
 
 function requireAuth(req, res) {

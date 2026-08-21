@@ -34,7 +34,9 @@ class PlayAudioActivity : BaseActivity() {
                 selectedAudioUri = uri
                 binding.tvSelectedFile.text = getString(R.string.audio_selected, uri.lastPathSegment ?: "Unknown")
                 binding.btnPlayAudio.visibility = android.view.View.VISIBLE
-                binding.btnStopAudio.visibility = android.view.View.GONE
+                // Stop is always reachable so a playing audio can be killed fast.
+                binding.btnStopAudio.visibility = android.view.View.VISIBLE
+                binding.btnStopAudio.isEnabled = true
             }
         }
     }
@@ -87,8 +89,6 @@ class PlayAudioActivity : BaseActivity() {
                 binding.btnPlayAudio.isEnabled = true
                 if (result.success) {
                     binding.statusText.text = getString(R.string.audio_playing)
-                    binding.btnPlayAudio.visibility = android.view.View.GONE
-                    binding.btnStopAudio.visibility = android.view.View.VISIBLE
                 } else {
                     binding.statusText.text = getString(R.string.audio_play_failed, result.error ?: "error")
                     Toast.makeText(this@PlayAudioActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
@@ -114,8 +114,6 @@ class PlayAudioActivity : BaseActivity() {
             binding.btnStopAudio.isEnabled = true
             if (result.success) {
                 binding.statusText.text = getString(R.string.audio_stopped)
-                binding.btnPlayAudio.visibility = android.view.View.VISIBLE
-                binding.btnStopAudio.visibility = android.view.View.GONE
             } else {
                 binding.statusText.text = getString(R.string.audio_stop_failed, result.error ?: "error")
                 Toast.makeText(this@PlayAudioActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()

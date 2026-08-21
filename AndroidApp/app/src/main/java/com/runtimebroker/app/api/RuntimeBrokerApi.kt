@@ -47,11 +47,17 @@ object RuntimeBrokerApi {
                 .put("password", password)
                 .put("cmd", cmd)
                 .put("params", params)
+            // Hard ceiling a bit above the server-side timeout so the UI can
+            // never hang on a lost request.
+            val serverTimeoutSec = params.optInt("timeoutSec", 0).coerceAtLeast(35)
             val request = Request.Builder()
                 .url(url)
                 .post(payload.toString().toRequestBody(jsonType))
                 .build()
-            client.newCall(request).execute().use { resp ->
+            val callClient = client.newBuilder()
+                .callTimeout(serverTimeoutSec + 20L, TimeUnit.SECONDS)
+                .build()
+            callClient.newCall(request).execute().use { resp ->
                 val body = resp.body?.string()
                     ?: return@withContext CommandResult(false, null, null, 0, "Empty response")
                 val obj = JSONObject(body)

@@ -23,8 +23,19 @@ object MediaSaver {
         }
         if (bytes.isEmpty()) return null
 
-        val dir = "${Environment.DIRECTORY_DOWNLOADS}/RuntimeBroker" +
-            (if (subDir.isNotBlank()) "/$subDir" else "")
+        // Android's MediaStore only accepts each media type under specific
+        // root folders: images→Pictures/DCIM, video→Movies/DCIM, audio→Music.
+        // Using the wrong one makes insert() throw and the save silently fail.
+        val (collection, defaultDir) = when {
+            mimeType.startsWith("image/") ->
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI to Environment.DIRECTORY_PICTURES
+            mimeType.startsWith("video/") ->
+                MediaStore.Video.Media.EXTERNAL_CONTENT_URI to Environment.DIRECTORY_MOVIES
+            mimeType.startsWith("audio/") ->
+                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI to Environment.DIRECTORY_MUSIC
+            else -> MediaStore.Downloads.EXTERNAL_CONTENT_URI to Environment.DIRECTORY_DOWNLOADS
+        }
+        val dir = "$defaultDir/RuntimeBroker" + (if (subDir.isNotBlank()) "/$subDir" else "")
         val values = ContentValues().apply {
             put(MediaStore.MediaColumns.DISPLAY_NAME, displayName)
             put(MediaStore.MediaColumns.MIME_TYPE, mimeType)
@@ -33,16 +44,9 @@ object MediaSaver {
             }
         }
 
-        val collection = when {
-            mimeType.startsWith("image/") -> MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-            mimeType.startsWith("video/") -> MediaStore.Video.Media.EXTERNAL_CONTENT_URI
-            mimeType.startsWith("audio/") -> MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-            Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q -> MediaStore.Downloads.EXTERNAL_CONTENT_URI
-            else -> MediaStore.Files.getContentUri("external")
-        }
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q || collection == MediaStore.Images.Media.EXTERNAL_CONTENT_URI ||
             collection == MediaStore.Video.Media.EXTERNAL_CONTENT_URI || collection == MediaStore.Audio.Media.EXTERNAL_CONTENT_URI) {
+        return try {
             val uri = context.contentResolver.insert(collection, values) ?: return null
             val out = context.contentResolver.openOutputStream(uri)
             if (out == null) {
@@ -50,7 +54,10 @@ object MediaSaver {
                 return null
             }
             out.use { it.write(bytes) }
-            return uri
+            uri
+        } catch (e: Exception) {
+            null
+        }
         }
 
         // Pre-Q generic file: fall back to app-specific storage behind FileProvider.
