@@ -32,6 +32,8 @@ class ShellActivity : BaseActivity() {
     private var history = StringBuilder()
     private var commandHistory = mutableListOf<String>()
     private var historyIndex = -1
+    private var cwd = ""
+    private var initJob: Job? = null
 
     companion object {
         /** Common cmd.exe / PowerShell commands offered as TAB-completion suggestions. */
@@ -60,9 +62,25 @@ class ShellActivity : BaseActivity() {
 
         machineName = intent.getStringExtra(MainActivity.EXTRA_MACHINE).orEmpty()
 
-        history.append("RuntimeBroker Shell — commands run on the remote device as cmd.exe\n")
-        history.append("Type a command below and press Run.\n\n")
+        history.append(getString(R.string.shell_banner))
+        history.append('\n').append('\n')
         binding.outputText.text = history.toString()
+
+        // Resolve the remote working directory so the prompt looks like
+        // cmd.exe (C:\Users\Name>).
+        initJob = lifecycleScope.launch {
+            val result = RuntimeBrokerApi.shell(
+                Prefs.serverUrl(this@ShellActivity),
+                machineName,
+                Prefs.password(this@ShellActivity),
+                "cd"
+            )
+            if (result.success) {
+                cwd = result.output?.trim()?.lines()?.lastOrNull { it.isNotBlank() } ?: ""
+                if (cwd.endsWith(">")) cwd = cwd.trimEnd('>')
+                updatePrompt()
+            }
+        }
 
         binding.commandInput.setOnEditorActionListener { _, _, _ ->
             runCommand()
@@ -177,6 +195,11 @@ class ShellActivity : BaseActivity() {
         }
     }
 
+    /** cmd.exe-style prompt: current remote directory + '>'. */
+    private fun updatePrompt() {
+        binding.promptText.text = if (cwd.isBlank()) getString(R.string.shell_prompt) else "$cwd>"
+    }
+
     private fun runQuick(command: String) {
         binding.commandInput.setText(command)
         binding.commandInput.setSelection(command.length)
@@ -187,12 +210,28 @@ class ShellActivity : BaseActivity() {
         val command = binding.commandInput.text.toString().trim()
         if (command.isEmpty()) return
 
+        // Local cls — clears this terminal like the real thing.
+        if (command.equals("cls", ignoreCase = true)) {
+            history = StringBuilder()
+            binding.outputText.text = ""
+            binding.commandInput.setText("")
+            updateSuggestions()
+            return
+        }
+
         // Add to history
         if (commandHistory.isEmpty() || commandHistory.last() != command) {
             commandHistory.add(command)
             if (commandHistory.size > 100) commandHistory.removeAt(0)
         }
         historyIndex = commandHistory.size
+
+        // cd changes directory on the remote only for its own process, so we
+        // append "& cd" to capture the new working directory and keep the
+        // prompt in sync — exactly how a persistent cmd session would feel.
+        val isCd = command.lowercase().startsWith("cd")
+        val effective = if (isCd && !command.endsWith("&cd", true) && !command.endsWith("& cd", true))
+            "$command & cd" else command
 
         runJob?.cancel()
         runJob = lifecycleScope.launch {
@@ -210,15 +249,23 @@ class ShellActivity : BaseActivity() {
                 Prefs.serverUrl(this@ShellActivity),
                 machineName,
                 Prefs.password(this@ShellActivity),
-                command
+                effective
             )
             ticker.cancel()
             binding.commandInput.isEnabled = true
             history.append("${getString(R.string.shell_prompt)} $command\n")
             if (result.success) {
                 val out = result.output?.takeIf { it.isNotBlank() } ?: getString(R.string.no_output)
-                history.append(out).append('\n')
-                result.error?.takeIf { it.isNotBlank() }?.let { history.append(it).append('\n') }
+                if (isCd) {
+                    // Last non-blank line of "cd X & cd" output is the new dir.
+                    cwd = out.trim().lines().lastOrNull { it.isNotBlank() } ?: cwd
+                    if (cwd.endsWith(">")) cwd = cwd.trimEnd('>')
+                    updatePrompt()
+                    history.append(out).append('\n')
+                } else {
+                    history.append(out).append('\n')
+                    result.error?.takeIf { it.isNotBlank() }?.let { history.append(it).append('\n') }
+                }
             } else {
                 history.append(getString(R.string.capture_failed, result.error ?: "error")).append('\n')
                 Toast.makeText(this@ShellActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
@@ -247,8 +294,7 @@ class ShellActivity : BaseActivity() {
             .setMessage("Clear terminal output?")
             .setPositiveButton(R.string.shell_clear) { _, _ ->
                 history = StringBuilder()
-                history.append("RuntimeBroker Shell — commands run on the remote device as cmd.exe\n")
-                history.append("Type a command below and press Run.\n\n")
+                history.append(getString(R.string.shell_banner)).append("\n\n")
                 binding.outputText.text = history.toString()
             }
             .setNegativeButton(R.string.cancel, null)

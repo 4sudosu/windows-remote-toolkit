@@ -18,6 +18,30 @@ public record CmdResult(bool Success, string Output, object? Data, string Error,
 /// </summary>
 public static class RemoteCommands
 {
+    private static string? _userWorkDir;
+    private static readonly object WorkDirLock = new();
+
+    /// <summary>
+    /// Commands feel like the user's own cmd.exe, so default to their profile
+    /// folder (resolved from the active console session) instead of the
+    /// service's systemprofile.
+    /// </summary>
+    private static string DefaultWorkDir()
+    {
+        lock (WorkDirLock)
+        {
+            if (_userWorkDir != null) return _userWorkDir;
+            _userWorkDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+            if (PowerShellRunner.TryInteractiveUser(out var user))
+            {
+                var name = user.Contains('\\') ? user.Split('\\')[1] : user;
+                var candidate = Path.Combine(Path.GetPathRoot(Environment.SystemDirectory) ?? "C:\\", "Users", name);
+                if (Directory.Exists(candidate)) _userWorkDir = candidate;
+            }
+            return _userWorkDir;
+        }
+    }
+
     public static async Task<CmdResult> ShellExec(string command, int timeoutSec)
     {
         if (string.IsNullOrWhiteSpace(command)) return CmdResult.Fail("Empty command");
@@ -29,7 +53,7 @@ public static class RemoteCommands
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
-                WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+                WorkingDirectory = DefaultWorkDir()
             };
             using var proc = Process.Start(psi);
             if (proc == null) return CmdResult.Fail("Failed to start process");

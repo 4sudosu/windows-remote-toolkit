@@ -1,7 +1,7 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Runtime Broker</string>
-    <string name="search_hint">Search by hostname, serial, IP, modelâ€¦</string>
+    <string name="search_hint">Search by hostname, serial, IP, model…</string>
     <string name="settings">Server Settings</string>
     <string name="retry">Retry</string>
     <string name="no_devices">No devices connected.</string>
@@ -17,12 +17,12 @@
     <string name="refresh_3s">3 s</string>
     <string name="refresh_5s">5 s</string>
     <string name="refresh_10s">10 s</string>
-    <string name="capturing">Capturingâ€¦</string>
+    <string name="capturing">Capturing…</string>
     <string name="no_screenshot">Click \u201cCapture Now\u201d to take a screenshot.</string>
-    <string name="status_connecting">Connecting to serverâ€¦</string>
-    <string name="status_online">â— %1$d online Â· %2$d devices</string>
+    <string name="status_connecting">Connecting to server…</string>
+    <string name="status_online">● %1$d online · %2$d devices</string>
     <string name="error_connection">Could not reach the server.</string>
-    <string name="unconfigured">Server not configured â€” tap Server Settings.</string>
+    <string name="unconfigured">Server not configured — tap Server Settings.</string>
     <string name="server_url_label">Server URL</string>
     <string name="server_url_hint">http://192.168.1.10:3001</string>
     <string name="password_label">Admin password</string>
@@ -33,12 +33,12 @@
     <string name="capture_ok">Captured %1$s</string>
     <string name="saved">Saved to Pictures/RuntimeBroker</string>
     <string name="save_failed">Could not save image</string>
-    <string name="online">â— Online</string>
-    <string name="offline">â— Offline</string>
+    <string name="online">● Online</string>
+    <string name="offline">● Offline</string>
     <string name="capture_title">Screen Capture</string>
     <string name="nav_devices">Devices</string>
     <string name="nav_capture">Screen Capture</string>
-    <string name="selecting_device">Selecting deviceâ€¦</string>
+    <string name="selecting_device">Selecting device…</string>
     <string name="available_commands">Available commands</string>
     <string name="action_screen_capture">Screenshot</string>
     <string name="action_screen_capture_desc">Take a full-screen screenshot of this device</string>
@@ -47,7 +47,7 @@
     <string name="action_input_text">Input text</string>
     <string name="action_input_text_desc">Send typed text to this device</string>
     <string name="not_available">Not available yet</string>
-    <string name="status_invalid">Could not reach the server â€” check the URL.</string>
+    <string name="status_invalid">Could not reach the server — check the URL.</string>
     <string name="settings_updated">Settings saved.</string>
 
     <!-- New v1.6 feature strings -->
@@ -76,13 +76,13 @@
     <string name="shell_hint">Enter a command, e.g. dir or tasklist /fi "MEMUSAGE gt 100"</string>
     <string name="terminal_header">Runtime Broker Shell</string>
     <string name="terminal_prompt">$ </string>
-    <string name="terminal_type_cmd">Type a commandâ€¦</string>
+    <string name="terminal_type_cmd">Type a command…</string>
     <string name="quick_dir">dir</string>
     <string name="quick_ipconfig">ipconfig</string>
     <string name="quick_tasklist">tasklist</string>
     <string name="quick_netstat">netstat -an</string>
     <string name="run">Run</string>
-    <string name="running">Runningâ€¦</string>
+    <string name="running">Running…</string>
     <string name="no_output">No output</string>
     <string name="input_text_title">Input text</string>
     <string name="send_text">Send</string>
@@ -90,22 +90,22 @@
     <string name="press_enter_after">Press Enter after sending</string>
 
     <string name="live_title">Live screen</string>
-    <string name="live_connecting">Connectingâ€¦</string>
+    <string name="live_connecting">Connecting…</string>
     <string name="live_connected">Live stream</string>
     <string name="live_disconnected">Disconnected</string>
     <string name="left_click">Left</string>
     <string name="right_click">Right</string>
-    <string name="wheel_up">Wheel â–²</string>
-    <string name="wheel_down">Wheel â–¼</string>
+    <string name="wheel_up">Wheel ▲</string>
+    <string name="wheel_down">Wheel ▼</string>
     <string name="stop_stream">Stop</string>
 
     <string name="screen_control_title">Screen control</string>
-    <string name="screen_control_hint">Drag to move Â· tap to click Â· hold = right-click</string>
+    <string name="screen_control_hint">Drag to move · tap to click · hold = right-click</string>
     <string name="rotate">Rotate</string>
-    <string name="rotate_to">Rotating screenâ€¦</string>
-    <string name="rotate_ok">Screen rotated to %1$dÂ°</string>
+    <string name="rotate_to">Rotating screen…</string>
+    <string name="rotate_ok">Screen rotated to %1$d°</string>
     <string name="rotate_failed">Rotation failed: %1$s</string>
-    <string name="degrees_fmt">%1$dÂ°</string>
+    <string name="degrees_fmt">%1$d°</string>
 
     <string name="files_title">File manager</string>
     <string name="files_empty">Empty folder</string>
@@ -114,10 +114,10 @@
     <string name="up">Up</string>
     <string name="download_file">Download</string>
     <string name="upload_file">Upload</string>
-    <string name="downloading">Downloadingâ€¦</string>
+    <string name="downloading">Downloading…</string>
     <string name="downloaded">Saved to Downloads/RuntimeBroker</string>
     <string name="upload_picker">Pick a file to upload</string>
-    <string name="uploading">Uploadingâ€¦</string>
+    <string name="uploading">Uploading…</string>
     <string name="uploaded">Uploaded %1$s</string>
     <string name="cannot_upload">Could not read the selected file</string>
     <string name="open_file">Open</string>
@@ -128,8 +128,8 @@
     <string name="capture_photo">Capture photo</string>
     <string name="record_video">Record video</string>
     <string name="seconds_label">Seconds</string>
-    <string name="recording">Recordingâ€¦</string>
-    <string name="capturing_photo">Capturing photoâ€¦</string>
+    <string name="recording">Recording…</string>
+    <string name="capturing_photo">Capturing photo…</string>
     <string name="save_media">Save</string>
     <string name="saved_media">Saved to Downloads/RuntimeBroker/%1$s</string>
     <string name="video_saved">Video saved</string>
@@ -177,23 +177,23 @@
     <string name="paragraph_too_long">Max 1000 words allowed</string>
     <string name="wpm_label">Words per minute</string>
     <string name="wpm_hint">e.g. 50</string>
-    <string name="eta_estimate">â‰ˆ %1$s</string>
+    <string name="eta_estimate">≈ %1$s</string>
     <string name="paragraph_enter_after">Press Enter after typing</string>
     <string name="start_typing">Start typing</string>
-    <string name="typing_started">Typing started â€” â‰ˆ %1$s left</string>
+    <string name="typing_started">Typing started — ≈ %1$s left</string>
     <string name="typing_failed">Could not start typing: %1$s</string>
     <string name="watch_live">Live view (watch it type)</string>
     <string name="empty_paragraph">Paragraph is empty</string>
 
     <string name="settings_title">Settings</string>
     <string name="test_connection">Test connection</string>
-    <string name="testing">Testingâ€¦</string>
-    <string name="connection_ok">Connected â€” %1$d agent(s) online</string>
+    <string name="testing">Testing…</string>
+    <string name="connection_ok">Connected — %1$d agent(s) online</string>
     <string name="connection_fail">Could not reach the server</string>
     <string name="invalid_password">Invalid admin password</string>
 
     <string name="refresh">Refresh</string>
-    <string name="loading">Loadingâ€¦</string>
+    <string name="loading">Loading…</string>
     <string name="done">Done</string>
     <string name="size_mb">%1$s MB</string>
     <string name="size_bytes">%1$d B</string>
@@ -217,18 +217,18 @@
     <string name="server_running">Server is running</string>
     <string name="server_running_on">Running on %1$s:%2$s</string>
     <string name="server_options">Server options</string>
-    <string name="server_options_hint">Host on this device Â· Connect to a server Â· Run on 0.0.0.0</string>
+    <string name="server_options_hint">Host on this device · Connect to a server · Run on 0.0.0.0</string>
     <string name="action_launcher">Launcher</string>
     <string name="action_change_server">Change server</string>
     <string name="action_web">Open web dashboard</string>
-    <string name="launcher_open_dashboard">â–¶  Open Running Server</string>
+    <string name="launcher_open_dashboard">▶  Open Running Server</string>
     <string name="launcher_open_dashboard_desc">Go to the dashboard of the server you started or connected to</string>
     <string name="migrate_here">Migrate server here</string>
     <string name="migrate_here_desc">Host the server on this device instead of an external one</string>
     <string name="welcome_title">Welcome to Runtime Broker</string>
     <string name="welcome_start">Host server on this phone</string>
     <string name="welcome_connect">Connect to an existing server</string>
-    <string name="welcome_desc">The embedded server runs entirely on this device â€” agents connect straight to it.</string>
+    <string name="welcome_desc">The embedded server runs entirely on this device — agents connect straight to it.</string>
 
     <string name="section_appearance">Appearance</string>
     <string name="theme_label">Theme</string>
@@ -256,26 +256,26 @@
     <string name="theme_selected">Selected</string>
 
     <!-- Settings tab (WinSysMonitor-style first page) -->
-    <string name="tab_devices">ðŸ’»  Devices</string>
-    <string name="tab_settings">âš™ï¸  Settings</string>
-    <string name="devices_header">ðŸ’»  Connected Devices</string>
+    <string name="tab_devices">💻  Devices</string>
+    <string name="tab_settings">⚙️  Settings</string>
+    <string name="devices_header">💻  Connected Devices</string>
     <string name="devices_count">%1$d connected</string>
     <string name="devices_unreachable">unreachable</string>
     <string name="devices_unreachable_desc">Cannot reach the server.\nCheck that it is running.</string>
-    <string name="section_app_icon">ðŸ“±  App Icon</string>
+    <string name="section_app_icon">📱  App Icon</string>
     <string name="app_icon_desc">Pick the launcher icon. It updates on your home screen.</string>
-    <string name="section_local_server">ðŸ–¥ï¸  Local Server</string>
+    <string name="section_local_server">🖥️  Local Server</string>
     <string name="embedded_node_server">Embedded Node server</string>
     <string name="server_state_stopped">Stopped</string>
     <string name="server_state_running">Running on %1$s:%2$s</string>
-    <string name="server_state_connect_mode">Connect mode â€” not running</string>
-    <string name="stop">â¹ Stop</string>
-    <string name="start">â–¶ Start</string>
+    <string name="server_state_connect_mode">Connect mode — not running</string>
+    <string name="stop">⏹ Stop</string>
+    <string name="start">▶ Start</string>
     <string name="open_server_settings">Open full server settings</string>
     <string name="server_settings_hint">Server URL, password and host/connect mode</string>
-    <string name="section_connect_developer">ðŸ‘¨â€ðŸ’»  Connect Developer</string>
+    <string name="section_connect_developer">👨‍💻  Connect Developer</string>
     <string name="connect_developer_desc">Reach out for help or ideas.</string>
-    <string name="app_footer">Runtime Broker Â· Built by 4sudo.su</string>
+    <string name="app_footer">Runtime Broker · Built by 4sudo.su</string>
     <string name="theme_subtitle">Theme</string>
     <string name="notif_sound_label">Notification sound</string>
     <string name="notif_icon_label">Notification icon</string>
@@ -286,28 +286,28 @@
     <string name="tone_alert">Alert</string>
     <string name="tone_ding">Ding</string>
     <string name="tone_soft">Soft</string>
-    <string name="tone_custom">Choose custom soundâ€¦</string>
+    <string name="tone_custom">Choose custom sound…</string>
     <string name="custom_tone_picker_title">Custom notification sound</string>
     <string name="app_icon_set">App icon set to %1$s. Check your home screen.</string>
     <string name="not_in_host_mode">Not in host mode</string>
-    <string name="server_starting">Server startingâ€¦</string>
-    <string name="server_stopping">Stopping serverâ€¦</string>
+    <string name="server_starting">Server starting…</string>
+    <string name="server_stopping">Stopping server…</string>
 
     <!-- Launcher (WinSysMonitor-style entry screen) -->
-    <string name="launcher_title">ðŸ“¡  Runtime Broker</string>
+    <string name="launcher_title">📡  Runtime Broker</string>
     <string name="launcher_subtitle">Agent Monitoring</string>
     <string name="launcher_status_none">No server configured</string>
     <string name="launcher_status_configured">Server configured on port %1$s (start it)</string>
-    <string name="launcher_status_running">ðŸŸ¢ Server running on %1$s:%2$s</string>
+    <string name="launcher_status_running">🟢 Server running on %1$s:%2$s</string>
     <string name="launcher_status_connected">Connected to %1$s</string>
-    <string name="launcher_start_server">ðŸš€  Start Server</string>
+    <string name="launcher_start_server">🚀  Start Server</string>
     <string name="launcher_start_desc">Host the dashboard + accept agents from this phone</string>
-    <string name="launcher_connect">ðŸ”—  Connect to Server</string>
+    <string name="launcher_connect">🔗  Connect to Server</string>
     <string name="launcher_connect_desc">View a server that is already running</string>
-    <string name="launcher_run_all">ðŸŒ  Run Server on 0.0.0.0</string>
-    <string name="launcher_run_all_desc">Host on all interfaces â€” every user on your network can access it</string>
-    <string name="launcher_developer">ðŸ‘¨â€ðŸ’»  Connect Developer</string>
-    <string name="launcher_port_title">ðŸš€ Start Server</string>
+    <string name="launcher_run_all">🌐  Run Server on 0.0.0.0</string>
+    <string name="launcher_run_all_desc">Host on all interfaces — every user on your network can access it</string>
+    <string name="launcher_developer">👨‍💻  Connect Developer</string>
+    <string name="launcher_port_title">🚀 Start Server</string>
     <string name="launcher_port_msg">Enter the port to host the dashboard on. Agents on your network can connect to this phone.</string>
     <string name="launcher_start">Start</string>
     <string name="launcher_invalid_port">Invalid port</string>
@@ -316,14 +316,14 @@
     <!-- Unlock gate -->
     <string name="unlock_hint">Owner password</string>
     <string name="unlock_title">Enter the owner password to continue.</string>
-    <string name="unlock_button">ðŸ”“  Unlock</string>
+    <string name="unlock_button">🔓  Unlock</string>
     <string name="unlock_wrong">Incorrect password</string>
-    <string name="unlock_connect_owner">â€”  CONNECT WITH OWNER  â€”</string>
-    <string name="unlock_protected">Protected access Â· unauthorized use is not allowed</string>
-    <string name="unlock_telegram">âœˆï¸  Telegram</string>
-    <string name="unlock_instagram">ðŸ“·  Instagram</string>
-    <string name="unlock_github">ðŸ™  GitHub</string>
-    <string name="unlock_gmail">âœ‰ï¸  Gmail</string>
+    <string name="unlock_connect_owner">—  CONNECT WITH OWNER  —</string>
+    <string name="unlock_protected">Protected access · unauthorized use is not allowed</string>
+    <string name="unlock_telegram">✈️  Telegram</string>
+    <string name="unlock_instagram">📷  Instagram</string>
+    <string name="unlock_github">🐙  GitHub</string>
+    <string name="unlock_gmail">✉️  Gmail</string>
 
     <!-- Connect screen -->
     <string name="connect_title">Connect to Runtime Broker</string>
@@ -352,7 +352,7 @@
     <string name="shell_clear">Clear</string>
     <string name="shell_history">History</string>
     <string name="shell_history_empty">No command history</string>
-    <string name="shell_prompt">C:\\></string>
+    <string name="shell_prompt">C:\&gt;</string>
 
     <!-- Processes Filters -->
     <string name="filter_applied">Filter: %1$s</string>
@@ -374,7 +374,7 @@
     <string name="select_audio_file">Select Audio File</string>
     <string name="audio_selected">Audio selected: %1$s</string>
     <string name="play_audio">Play on Device</string>
-    <string name="audio_playing">Playing on deviceâ€¦</string>
+    <string name="audio_playing">Playing on device…</string>
     <string name="audio_play_failed">Failed to play: %1$s</string>
     <string name="ready_to_transfer">Ready to transfer</string>
     <string name="audio_stopped">Audio stopped</string>
@@ -390,7 +390,7 @@
     <string name="select_files">Select Files</string>
     <string name="files_selected">%1$d file(s) selected</string>
     <string name="transfer_files">Transfer to Device</string>
-    <string name="transferring">Transferringâ€¦ %1$d/%2$d</string>
+    <string name="transferring">Transferring… %1$d/%2$d</string>
     <string name="transfer_complete">All files transferred to Downloads</string>
     <string name="transfer_failed">Transfer failed: %1$s</string>
     <string name="no_files_selected">No files selected</string>
@@ -402,7 +402,7 @@
     <string name="select_apk_file">Select APK File</string>
     <string name="apk_selected">APK selected: %1$s</string>
     <string name="install_app">Install on Device</string>
-    <string name="installing_app">Installing on deviceâ€¦</string>
+    <string name="installing_app">Installing on device…</string>
     <string name="app_installed">Application installed successfully</string>
     <string name="install_failed">Install failed: %1$s</string>
     <string name="no_apk_selected">No APK selected</string>
@@ -411,10 +411,10 @@
     <string name="action_run_app">Run App</string>
     <string name="action_run_app_desc">List and launch applications on connected device</string>
     <string name="run_app_title">Run Application on Device</string>
-    <string name="loading_apps">Loading applicationsâ€¦</string>
+    <string name="loading_apps">Loading applications…</string>
     <string name="no_apps_found">No applications found</string>
     <string name="run_app">Run</string>
-    <string name="app_running">Launching %1$sâ€¦</string>
+    <string name="app_running">Launching %1$s…</string>
     <string name="run_failed">Failed to run: %1$s</string>
 
     <!-- General -->
@@ -430,7 +430,7 @@
     <string name="key_down">DOWN next</string>
     <string name="key_ctrl_c">CTRL+C</string>
     <string name="shell_no_suggestion">No matching command</string>
-    <string name="shell_elapsed">Runningâ€¦ %1$ds</string>
+    <string name="shell_elapsed">Running… %1$ds</string>
     <string name="time_left">Time left:</string>
     <string name="server_running_section">Running server</string>
     <string name="server_stopped_line">Server is not running on this device.</string>
@@ -444,6 +444,23 @@
     <string name="handle_instagram">@4sudo.su</string>
     <string name="handle_email">4sudo.su@gmail.com</string>
     <string name="handle_github">github.com/4sudosu</string>
+    <string name="shell_banner">Microsoft Windows [Version 10.0]</string>
+    <string name="media_title">Recorded media</string>
+    <string name="media_empty">Nothing recorded yet.</string>
+    <string name="media_count">%1$d items</string>
+    <string name="media_open">Preview</string>
+    <string name="media_share">Share / Save elsewhere</string>
+    <string name="media_delete">Delete</string>
+    <string name="media_delete_confirm">Delete %1$s from this device?</string>
+    <string name="media_deleted">Deleted</string>
+    <string name="media_delete_failed">Could not delete</string>
+    <string name="media_open_failed">No app can open this file</string>
+    <string name="media_needs_q">Requires Android 10 or newer</string>
+    <string name="action_media">Recorded media</string>
+    <string name="action_media_desc">Browse, preview and delete recordings</string>
+    <string name="delete">Delete</string>
 </resources>
+
+
 
 

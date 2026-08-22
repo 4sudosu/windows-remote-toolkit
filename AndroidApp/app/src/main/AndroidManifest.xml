@@ -198,6 +198,11 @@
             android:exported="false"
             android:label="@string/run_app_title" />
 
+        <activity
+            android:name=".MediaLibraryActivity"
+            android:exported="false"
+            android:label="@string/media_title" />
+
         <service
             android:name=".NodeServerService"
             android:exported="false"

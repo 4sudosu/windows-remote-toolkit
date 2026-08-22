@@ -111,6 +111,7 @@ class DeviceActionsActivity : BaseActivity() {
             CommandItem("paragraph", R.drawable.ic_paragraph, R.string.action_input_paragraph, R.string.action_input_paragraph_desc),
             CommandItem("play_audio", R.drawable.ic_audio, R.string.action_play_audio, R.string.action_play_audio_desc),
             CommandItem("transfer_files", R.drawable.ic_file_transfer, R.string.action_transfer_files, R.string.action_transfer_files_desc),
+            CommandItem("media", R.drawable.ic_video, R.string.action_media, R.string.action_media_desc),
             CommandItem("settings", R.drawable.ic_settings, R.string.action_settings, R.string.action_settings_desc)
         )
 
@@ -147,6 +148,7 @@ class DeviceActionsActivity : BaseActivity() {
             "paragraph" -> InputParagraphActivity::class.java
             "play_audio" -> PlayAudioActivity::class.java
             "transfer_files" -> TransferFilesActivity::class.java
+            "media" -> MediaLibraryActivity::class.java
             "settings" -> SettingsActivity::class.java
             else -> return
         }
