@@ -1,6 +1,7 @@
 package com.runtimebroker.app
 
 import android.app.Activity
+import android.content.ActivityNotFoundException
 import android.content.ContentUris
 import android.content.Intent
 import android.graphics.Bitmap
@@ -105,15 +106,77 @@ class MediaLibraryActivity : BaseActivity() {
     }
 
     private fun open(item: MediaItem) {
-        try {
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(item.uri, item.mime)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        // Audio plays right inside the app — guaranteed to work no matter
+        // which players the device ships with.
+        if (item.mime.startsWith("audio/")) {
+            toggleInAppAudio(item)
+            return
+        }
+        // Video/images: exact MIME first, then broader types — some OEM
+        // players don't register audio/mp4 but do handle audio/*.
+        val candidates = mutableListOf(item.mime)
+        when {
+            item.mime.startsWith("video/") -> candidates.addAll(listOf("video/*", "*/*"))
+            item.mime.startsWith("image/") -> candidates.add("image/*")
+        }
+        for (type in candidates) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(item.uri, type)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                startActivity(intent)
+                return
+            } catch (e: ActivityNotFoundException) {
+                // try next candidate
+            } catch (e: Exception) {
+                break
             }
-            startActivity(intent)
+        }
+        Toast.makeText(this, R.string.media_open_failed, Toast.LENGTH_SHORT).show()
+    }
+
+    // ---- in-app audio playback -------------------------------------------
+    private var mediaPlayer: android.media.MediaPlayer? = null
+    private var playingUri: Uri? = null
+
+    private fun toggleInAppAudio(item: MediaItem) {
+        if (playingUri == item.uri && mediaPlayer != null) {
+            stopAudio()
+            return
+        }
+        stopAudio()
+        try {
+            playingUri = item.uri
+            val player = android.media.MediaPlayer()
+            player.setDataSource(this, item.uri)
+            player.setOnCompletionListener { stopAudio() }
+            player.setOnErrorListener { _, _, _ -> stopAudio(); true }
+            player.prepare()
+            player.start()
+            mediaPlayer = player
+            binding.statusText.text = getString(R.string.media_playing, item.name)
+            Toast.makeText(this, R.string.media_stop_hint, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
+            stopAudio()
             Toast.makeText(this, R.string.media_open_failed, Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun stopAudio() {
+        try {
+            mediaPlayer?.stop()
+            mediaPlayer?.release()
+        } catch (_: Exception) {
+        }
+        mediaPlayer = null
+        playingUri = null
+        binding.statusText.text = ""
+    }
+
+    override fun onDestroy() {
+        stopAudio()
+        super.onDestroy()
     }
 
     private fun share(item: MediaItem) {

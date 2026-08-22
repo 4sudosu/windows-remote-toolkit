@@ -1,5 +1,6 @@
 package com.runtimebroker.app
 
+import android.content.ActivityNotFoundException
 import android.content.ContentValues
 import android.content.Context
 import android.content.Intent
@@ -73,15 +74,28 @@ object MediaSaver {
     }
 
     fun open(context: Context, uri: Uri, mimeType: String): Boolean {
-        return try {
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, mimeType)
-                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            context.startActivity(Intent.createChooser(intent, "Open"))
-            true
-        } catch (e: Exception) {
-            false
+        // Some devices have no player registered for exact types like
+        // audio/mp4, so fall back to broader types before giving up.
+        val candidates = mutableListOf(mimeType)
+        when {
+            mimeType.startsWith("audio/") -> candidates.addAll(listOf("audio/*", "*/*"))
+            mimeType.startsWith("video/") -> candidates.addAll(listOf("video/*", "*/*"))
+            mimeType.startsWith("image/") -> candidates.add("image/*")
         }
+        for (type in candidates) {
+            try {
+                val intent = Intent(Intent.ACTION_VIEW).apply {
+                    setDataAndType(uri, type)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                context.startActivity(Intent.createChooser(intent, "Open"))
+                return true
+            } catch (e: ActivityNotFoundException) {
+                // try next candidate
+            } catch (e: Exception) {
+                return false
+            }
+        }
+        return false
     }
 }

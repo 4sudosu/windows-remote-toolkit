@@ -459,7 +459,10 @@
     <string name="action_media">Recorded media</string>
     <string name="action_media_desc">Browse, preview and delete recordings</string>
     <string name="delete">Delete</string>
+    <string name="media_playing">Playing: %1$s (tap again to stop)</string>
+    <string name="media_stop_hint">Tap the play button again to stop</string>
 </resources>
+
 
 
 
