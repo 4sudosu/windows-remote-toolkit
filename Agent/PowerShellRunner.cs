@@ -35,17 +35,17 @@ public static class PowerShellRunner
         {
             Directory.CreateDirectory(dir);
 
-            // One-shot interactive scheduled task, created via schtasks.exe + an
-            // XML definition (NOT PowerShell). It runs THIS agent EXE with the
-            // requested action so no powershell.exe ever appears for the capture.
+            // One-shot interactive scheduled task, registered via the Task
+            // Scheduler COM API (Register-ScheduledTask) with RunLevel=Highest
+            // so input reaches ELEVATED windows (admin cmd). The plain
+            // schtasks.exe /XML parser rejects the Highest run level on some
+            // machines ("value incorrectly formatted or out of range").
             if (!TryInteractiveUser(out var user))
                 return (null, "No interactive user is logged on");
-            var taskXml = Path.Combine(dir, $"t-{id}.xml");
-            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, actionArgs), Encoding.Unicode);
 
-            var create = SchTasks($"/Create /TN \"{taskName}\" /XML \"{taskXml}\" /F");
-            if (create.ExitCode != 0)
-                return (null, $"Failed to create interactive task (exit {create.ExitCode})");
+            if (!TryRegisterInteractiveTask(user, taskName, actionArgs, out var createError))
+                return (null, $"Failed to create interactive task: {createError}");
+
             var run = SchTasks($"/Run /TN \"{taskName}\"");
             if (run.ExitCode != 0)
                 return (null, $"Failed to run interactive task (exit {run.ExitCode})");
@@ -138,57 +138,46 @@ public static class PowerShellRunner
     }
 
     /// <summary>
-    /// Builds a Task Scheduler 2.0 XML definition that runs the agent EXE in the
-    /// interactive user's session. DisallowStartIfOnBatteries is set to false so
-    /// the task actually starts on battery-powered laptops (the default keeps it
-    /// "Queued" forever).
+    /// Registers THIS agent EXE as a one-shot interactive scheduled task via
+    /// the Task Scheduler COM API (Register-ScheduledTask cmdlet) with
+    /// RunLevel=Highest, so keystrokes reach ELEVATED windows (admin cmd).
+    /// The schtasks.exe /XML parser rejects 'Highest' on some machines.
     /// </summary>
-    private static string BuildTaskXml(string user, string taskName, string actionArgs)
+    private static bool TryRegisterInteractiveTask(string user, string taskName, string actionArgs, out string error)
     {
-        var exe = Environment.ProcessPath;
-        if (string.IsNullOrEmpty(exe)) throw new InvalidOperationException("Cannot determine agent EXE path");
-        string E(string s) => s.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;")
-                              .Replace("\"", "&quot;").Replace("'", "&apos;");
-        return "<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n" +
-            "<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\r\n" +
-            "  <RegistrationInfo>\r\n" +
-            $"    <Description>RuntimeBroker interactive task</Description>\r\n" +
-            $"    <URI>\\{E(taskName)}</URI>\r\n" +
-            "  </RegistrationInfo>\r\n" +
-            "  <Triggers />\r\n" +
-            "  <Principals>\r\n" +
-            "    <Principal id=\"Author\">\r\n" +
-            $"      <UserId>{E(user)}</UserId>\r\n" +
-            "      <LogonType>InteractiveToken</LogonType>\r\n" +
-            "      <RunLevel>LeastPrivilege</RunLevel>\r\n" +
-            "    </Principal>\r\n" +
-            "  </Principals>\r\n" +
-            "  <Settings>\r\n" +
-            "    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>\r\n" +
-            "    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>\r\n" +
-            "    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>\r\n" +
-            "    <AllowHardTerminate>true</AllowHardTerminate>\r\n" +
-            "    <StartWhenAvailable>false</StartWhenAvailable>\r\n" +
-            "    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>\r\n" +
-            "    <IdleSettings>\r\n" +
-            "      <StopOnIdleEnd>true</StopOnIdleEnd>\r\n" +
-            "      <RestartOnIdle>false</RestartOnIdle>\r\n" +
-            "    </IdleSettings>\r\n" +
-            "    <AllowStartOnDemand>true</AllowStartOnDemand>\r\n" +
-            "    <Enabled>true</Enabled>\r\n" +
-            "    <Hidden>false</Hidden>\r\n" +
-            "    <RunOnlyIfIdle>false</RunOnlyIfIdle>\r\n" +
-            "    <WakeToRun>false</WakeToRun>\r\n" +
-            "    <ExecutionTimeLimit>PT180M</ExecutionTimeLimit>\r\n" +
-            "    <Priority>7</Priority>\r\n" +
-            "  </Settings>\r\n" +
-            "  <Actions Context=\"Author\">\r\n" +
-            "    <Exec>\r\n" +
-            $"      <Command>{E(exe)}</Command>\r\n" +
-            $"      <Arguments>{E(actionArgs)}</Arguments>\r\n" +
-            "    </Exec>\r\n" +
-            "  </Actions>\r\n" +
-            "</Task>\r\n";
+        error = null!;
+        try
+        {
+            string Esc(string s) => s.Replace("'", "''");
+            var exe = Environment.ProcessPath;
+            if (string.IsNullOrEmpty(exe)) throw new InvalidOperationException("Cannot determine agent EXE path");
+            var ps =
+                "$ErrorActionPreference='Stop';" +
+                "try{" +
+                "$a=New-ScheduledTaskAction -Execute '" + Esc(exe) + "' -Argument '" + Esc(actionArgs) + "';" +
+                "$p=New-ScheduledTaskPrincipal -UserId '" + Esc(user) + "' -LogonType Interactive -RunLevel Highest;" +
+                "$s=New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -ExecutionTimeLimit (New-TimeSpan -Minutes 180);" +
+                "Register-ScheduledTask -TaskName '" + Esc(taskName) + "' -Action $a -Principal $p -Settings $s -Force | Out-Null;" +
+                "exit 0}catch{ exit 1 }";
+            var psi = new ProcessStartInfo("powershell.exe",
+                "-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command \"" + ps + "\"")
+            {
+                UseShellExecute = false,
+                CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true
+            };
+            using var proc = Process.Start(psi)!;
+            proc.WaitForExit(30000);
+            if (proc.ExitCode != 0)
+            {
+                var errOut = proc.StandardOutput.ReadToEnd().Trim();
+                error = errOut.Length > 0 ? errOut : "powershell exited " + proc.ExitCode;
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex) { error = ex.Message; return false; }
     }
 
     /// <summary>
