@@ -33,6 +33,20 @@ function loadAdminPassword() {
 const ADMIN_PASSWORD = loadAdminPassword();
 if (!ADMIN_PASSWORD) console.warn('ADMIN_PASSWORD is not configured; authenticated connections will be rejected.');
 
+// Agent token for WebSocket authentication (separate from admin password)
+function loadAgentToken() {
+  if (process.env.AGENT_TOKEN) return process.env.AGENT_TOKEN;
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    return String(config.agentToken || config.agentPassword || '');
+  } catch {
+    return '';
+  }
+}
+
+const AGENT_TOKEN = loadAgentToken() || ADMIN_PASSWORD;
+if (!AGENT_TOKEN) console.warn('AGENT_TOKEN is not configured; using ADMIN_PASSWORD as fallback for agent connections.');
+
 // ── helpers ──────────────────────────────────────────────────────────────
 const makeId = () => crypto.randomBytes(8).toString('hex');
 
@@ -209,7 +223,7 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
   const token = url.searchParams.get('token') || '';
-  if (!ADMIN_PASSWORD || token !== ADMIN_PASSWORD) {
+  if (!AGENT_TOKEN || token !== AGENT_TOKEN) {
     ws.close(4001, 'Unauthorized');
     return;
   }
