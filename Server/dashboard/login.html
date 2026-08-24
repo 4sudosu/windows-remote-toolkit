@@ -3,33 +3,129 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Runtime Broker Login</title>
+  <title>Runtime Broker — Sign in</title>
   <link rel="stylesheet" href="style.css">
+  <style>
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(1200px 600px at 20% -10%,#1e3a8a55,transparent 60%),
+                 radial-gradient(1000px 500px at 90% 110%,#0ea5e94d,transparent 60%),
+                 #0b1120;
+      font-family:'Segoe UI',system-ui,sans-serif;color:#f8fafc;overflow:hidden
+    }
+    .orb{position:fixed;border-radius:50%;filter:blur(90px);opacity:.35;pointer-events:none;animation:float 14s ease-in-out infinite alternate}
+    .orb.a{width:420px;height:420px;background:#3b82f6;top:-120px;left:-120px}
+    .orb.b{width:360px;height:360px;background:#06b6d4;bottom:-140px;right:-100px;animation-delay:-7s}
+    @keyframes float{from{transform:translate(0,0) scale(1)}to{transform:translate(40px,30px) scale(1.12)}}
+
+    .card{
+      position:relative;width:min(400px,92vw);padding:42px 36px 34px;
+      background:rgba(17,26,46,.72);backdrop-filter:blur(18px);
+      border:1px solid rgba(148,163,184,.18);border-radius:22px;
+      box-shadow:0 24px 70px -18px rgba(2,8,23,.85),inset 0 1px 0 rgba(255,255,255,.05);
+      animation:rise .55s cubic-bezier(.21,1.02,.73,1) both
+    }
+    @keyframes rise{from{opacity:0;transform:translateY(26px) scale(.97)}to{opacity:1;transform:none}}
+
+    .card::before{
+      content:'';position:absolute;inset:-1px;border-radius:inherit;padding:1px;
+      background:linear-gradient(135deg,#3b82f6aa,transparent 40%,transparent 60%,#06b6d4aa);
+      -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+      -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none
+    }
+
+    .logo{
+      width:64px;height:64px;margin:0 auto 20px;border-radius:18px;display:grid;place-items:center;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);
+      box-shadow:0 10px 28px -8px #3b82f6aa;font-size:28px
+    }
+    h1{margin:0;text-align:center;font-size:1.5rem;font-weight:800;letter-spacing:-.02em}
+    .sub{margin:8px 0 28px;text-align:center;color:#94a3b8;font-size:.86rem}
+
+    .field{position:relative;margin-bottom:14px}
+    input[type=password]{
+      width:100%;padding:15px 48px 15px 16px;border-radius:13px;
+      background:#0d1729;border:1.5px solid #263650;color:#f8fafc;
+      font-size:1rem;outline:none;transition:border-color .2s,box-shadow .2s
+    }
+    input[type=password]::placeholder{color:#64748b}
+    input[type=password]:focus{border-color:#3b82f6;box-shadow:0 0 0 4px #3b82f633}
+    .eye{
+      position:absolute;right:8px;top:50%;transform:translateY(-50%);
+      border:0;background:none;color:#64748b;cursor:pointer;padding:8px;border-radius:8px;
+      display:grid;place-items:center;transition:color .2s
+    }
+    .eye:hover{color:#93c5fd}
+
+    button.signin{
+      width:100%;padding:14px;margin-top:8px;border:0;border-radius:13px;cursor:pointer;
+      font-size:.98rem;font-weight:800;color:#fff;letter-spacing:.01em;
+      background:linear-gradient(135deg,#3b82f6,#06b6d4);background-size:150% 150%;
+      transition:background-position .35s,transform .12s,box-shadow .25s;
+      box-shadow:0 10px 26px -10px #3b82f6cc
+    }
+    button.signin:hover{background-position:100% 50%;transform:translateY(-1px)}
+    button.signin:active{transform:translateY(0)}
+
+    .msg{min-height:20px;margin:14px 0 0;text-align:center;font-size:.82rem;color:#fca5a5;transition:opacity .2s}
+    .msg.ok{color:#6ee7b7}
+    .spinner{
+      display:inline-block;width:13px;height:13px;margin-right:6px;vertical-align:-2px;
+      border:2px solid #ffffff44;border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite
+    }
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .shake{animation:shake .38s}
+    @keyframes shake{20%{transform:translateX(-9px)}40%{transform:translateX(8px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+
+    .lock{display:flex;align-items:center;justify-content:center;gap:7px;margin-top:18px;color:#64748b;font-size:.74rem}
+    .lock svg{opacity:.7}
+    @media(max-height:600px){body{overflow:auto;padding:30px 0}}
+  </style>
 </head>
 <body>
-  <main class="login-page">
-    <form id="loginForm" class="tool-panel login-card">
-      <h1>Runtime Broker</h1>
-      <p class="muted">Enter the server administrator password.</p>
-      <input id="password" class="search-input" type="password" autocomplete="current-password" required autofocus>
-      <button class="btn-primary" type="submit">Sign in</button>
-      <p id="loginError" class="muted" role="alert"></p>
-    </form>
-  </main>
-  <script>
-    document.getElementById('loginForm').addEventListener('submit', async event => {
-      event.preventDefault();
-      const error = document.getElementById('loginError');
-      error.textContent = 'Signing in...';
-      const response = await fetch('/api/login', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({password: document.getElementById('password').value})
-      });
-      const data = await response.json().catch(() => ({}));
-      if (response.ok) location.replace('/');
-      else error.textContent = data.attemptsLeft == null ? (data.error || 'Login failed') : `${data.error}. ${data.attemptsLeft} attempt(s) left.`;
-    });
-  </script>
+  <div class="orb a"></div><div class="orb b"></div>
+
+  <form id="loginForm" class="card" autocomplete="on">
+    <div class="logo">🖥️</div>
+    <h1>Runtime Broker</h1>
+    <p class="sub">Enter the administrator password to access your devices</p>
+
+    <div class="field">
+      <input id="password" type="password" placeholder="Admin password" autocomplete="current-password" required autofocus>
+      <button type="button" class="eye" id="toggle" aria-label="Show password">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+
+    <button class="signin" type="submit" id="btn">Sign in</button>
+    <p class="msg" id="loginError" role="alert"></p>
+
+    <div class="lock">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Secured connection · 3 attempts before lockout
+    </div>
+  </form>
+
+<script>
+const form=document.getElementById('loginForm'),input=document.getElementById('password'),
+      btn=document.getElementById('btn'),err=document.getElementById('loginError');
+
+document.getElementById('toggle').onclick=()=>{input.type=input.type==='password'?'text':'password'};
+
+form.addEventListener('submit',async e=>{
+  e.preventDefault();
+  err.className='msg';err.innerHTML='<span class="spinner"></span>Signing in…';btn.disabled=true;
+  try{
+    const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:input.value})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok){err.className='msg ok';err.textContent='✓ Access granted';setTimeout(()=>location.replace('/'),350);return}
+    const m=d.attemptsLeft==null?(d.error||'Login failed'):`${d.error} · ${d.attemptsLeft} attempt${d.attemptsLeft===1?'':'s'} left`;
+    err.textContent=m;form.classList.remove('shake');void form.offsetWidth;form.classList.add('shake');
+  }catch(x){err.textContent='Network error — check the server and try again'}
+  btn.disabled=false;
+});
+</script>
 </body>
 </html>
