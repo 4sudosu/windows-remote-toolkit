@@ -1,0 +1,42 @@
+# Build outputs
+publish-single/
+installer-output/
+Ready to Push/
+Agent/bin/
+Agent/obj/
+Server/node_modules/
+
+# IDE/Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+Server/*.log
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Local config (contains tokens/URLs)
+Agent/agent.config.json
+Server/agents.json
+
+# Android build
+AndroidApp/.gradle/
+AndroidApp/app/build/
+AndroidApp/app/.cxx/
+AndroidApp/local.properties
+
+# Windows
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+packages/
+*.nupkg

