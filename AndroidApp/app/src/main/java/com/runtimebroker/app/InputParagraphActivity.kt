@@ -13,6 +13,8 @@ import androidx.lifecycle.lifecycleScope
 import com.runtimebroker.app.api.RuntimeBrokerApi
 import com.runtimebroker.app.databinding.ActivityParagraphBinding
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -27,6 +29,7 @@ class InputParagraphActivity : BaseActivity() {
     private var ws: WebSocket? = null
     private var typingJob: Job? = null
     private var progressJob: Job? = null
+    private var sessionActive = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -87,6 +90,8 @@ class InputParagraphActivity : BaseActivity() {
             Toast.makeText(this, getString(R.string.empty_paragraph), Toast.LENGTH_SHORT).show()
             return
         }
+        // Prevent duplicate typing jobs — if already typing, ignore the click
+        if (isTyping) return
         // No word limit — long paragraphs are fine; the ETA scales with length.
         val words = currentWords()
         val wpm = binding.wpmInput.text.toString().toIntOrNull()?.takeIf { it > 0 } ?: 50
@@ -95,7 +100,7 @@ class InputParagraphActivity : BaseActivity() {
 
         lifecycleScope.launch {
             binding.btnStart.isEnabled = false
-            binding.btnStopTyping.visibility = View.VISIBLE
+            // Button always visible - no visibility toggle needed
             binding.statusText.text = getString(R.string.running)
             val result = RuntimeBrokerApi.command(
                 Prefs.serverUrl(this@InputParagraphActivity),
@@ -110,14 +115,20 @@ class InputParagraphActivity : BaseActivity() {
                     .put("timeoutSec", totalSecs + 120)
             )
             if (result.success) {
+                isTyping = true
                 val eta = formatEta(words * 60 / wpm)
                 binding.statusText.text = getString(R.string.typing_started, eta)
+                // Remember the target so the notification's STOP button works
+                // even after this screen is gone.
+                Prefs.saveLastDevice(this@InputParagraphActivity, machineName, Prefs.lastHost(this@InputParagraphActivity))
+                Notifications.showTyping(this@InputParagraphActivity)
                 startProgressCountdown(words * 60 / wpm)
-            } else {
+} else {
                 binding.btnStart.isEnabled = true
-                binding.btnStopTyping.visibility = View.GONE
+                // Button always visible - no visibility toggle needed
                 binding.statusText.text = getString(R.string.typing_failed, result.error ?: "error")
                 Toast.makeText(this@InputParagraphActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
+                isTyping = false
             }
         }
     }
@@ -143,16 +154,18 @@ class InputParagraphActivity : BaseActivity() {
     }
 
     private fun finishProgress() {
+        isTyping = false
+        Notifications.cancelTyping(this)
         binding.progressBar.visibility = View.GONE
         binding.timeLeftText.visibility = View.GONE
         binding.btnStart.isEnabled = true
-        binding.btnStopTyping.visibility = View.GONE
+        // Button always visible - no visibility toggle needed
     }
 
     private fun stopTyping() {
+        // Disable button immediately to prevent double-click
+        binding.btnStopTyping.isEnabled = false
         lifecycleScope.launch {
-            binding.btnStopTyping.isEnabled = false
-            binding.statusText.text = getString(R.string.running)
             val result = RuntimeBrokerApi.command(
                 Prefs.serverUrl(this@InputParagraphActivity),
                 machineName,
@@ -160,14 +173,17 @@ class InputParagraphActivity : BaseActivity() {
                 "stop_typing",
                 JSONObject()
             )
+            // Button re-enabled after command completes
             binding.btnStopTyping.isEnabled = true
             progressJob?.cancel()
-            finishProgress()
+            // Button always visible - no visibility toggle needed
             if (result.success) {
                 binding.statusText.text = getString(R.string.typing_stopped)
+                isTyping = false
             } else {
                 binding.statusText.text = getString(R.string.typing_stop_failed, result.error ?: "error")
                 Toast.makeText(this@InputParagraphActivity, result.error ?: "error", Toast.LENGTH_SHORT).show()
+                isTyping = false
             }
         }
     }
@@ -198,7 +214,9 @@ class InputParagraphActivity : BaseActivity() {
 
                 override fun onError(message: String) {}
 
-                override fun onClosed() {}
+                override fun onClosed() {
+                    binding.liveImage.postDelayed({ startLiveView() }, 3000)
+                }
             })
     }
 
@@ -282,7 +300,29 @@ class InputParagraphActivity : BaseActivity() {
         if (hasFocus) updateLiveMatrix()
     }
 
+    private var isTyping = false
+
     override fun onDestroy() {
+        if (isTyping) {
+            // lifecycleScope is already DEAD here, so the stop command must go
+            // out through an independent scope — otherwise closing the screen
+            // leaves the remote paragraph typing forever.
+            val app = applicationContext
+            val url = Prefs.serverUrl(app)
+            val machine = machineName
+            val pw = Prefs.password(app)
+            CoroutineScope(Dispatchers.IO).launch {
+                try {
+                    if (url.isNotBlank() && machine.isNotBlank()) {
+                        RuntimeBrokerApi.command(url, machine, pw, "stop_typing", JSONObject())
+                    }
+                } catch (_: Exception) {
+                } finally {
+                    Notifications.cancelTyping(app)
+                }
+            }
+        }
+        Notifications.cancelTyping(this)
         typingJob?.cancel()
         progressJob?.cancel()
         try { ws?.close(1000, "bye") } catch (_: Exception) {}

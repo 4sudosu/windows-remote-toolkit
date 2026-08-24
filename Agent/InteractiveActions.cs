@@ -22,6 +22,11 @@ public static class InteractiveActions
             using var doc = JsonDocument.Parse(File.ReadAllText(inFile));
             var text = doc.RootElement.TryGetProperty("text", out var t) && t.ValueKind == JsonValueKind.String
                 ? t.GetString() ?? "" : "";
+            //
+// STOP ALL must only stop paragraph typing, not other automation.
+// The check is intentionally removed from SendText; paragraph typing
+// has its own stop check in SendParagraph (line 101).
+//
             System.Windows.Forms.SendKeys.SendWait(EscapeForSendKeys(text));
             File.WriteAllText(outFile, "OK");
             return 0;
@@ -80,6 +85,9 @@ public static class InteractiveActions
     {
         try
         {
+            using (var trace = TraceLog())
+                trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} para start pid={Environment.ProcessId}");
+
             using var doc = JsonDocument.Parse(File.ReadAllText(inFile));
             var root = doc.RootElement;
             var text = GetStr(root, "text", "");
@@ -91,9 +99,17 @@ public static class InteractiveActions
             var rng = new Random();
             var baseMs = (int)Math.Max(10, Math.Round(60000.0 / wpm / 5.0));
             var stopFile = inFile + ".stop";
+            var typed = 0;
             foreach (var c in text)
             {
-                if (File.Exists(stopFile)) { try { File.Delete(stopFile); } catch { } File.WriteAllText(outFile, "STOPPED"); return 0; }
+                if (File.Exists(stopFile) || EmergencyStop.IsStopRequested)
+                {
+                    try { File.Delete(stopFile); } catch { }
+                    using (var trace = TraceLog())
+                        trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} para STOPPED at char {typed}/{text.Length}");
+                    File.WriteAllText(outFile, "STOPPED");
+                    return 0;
+                }
                 if (c == '\r') continue;
                 double mult;
                 if (",.!?;:â€¦".IndexOf(c) >= 0) mult = 3.0 + rng.NextDouble() * 2.5;
@@ -105,6 +121,8 @@ public static class InteractiveActions
                 Thread.Sleep(delay);
             }
             if (addEnter) SendKeys.SendWait("{ENTER}");
+            using (var trace = TraceLog())
+                trace.WriteLine($"{DateTime.Now:HH:mm:ss.fff} para finished ({text.Length} chars)");
             File.WriteAllText(outFile, "OK");
             return 0;
         }
@@ -230,6 +248,72 @@ public static class InteractiveActions
             return b64;
         }
         finally { try { await WinRt(file.DeleteAsync(), 5); } catch { } }
+    }
+
+    internal static void ReleaseInput()
+    {
+        try
+        {
+            mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_RIGHTUP, 0, 0, 0, UIntPtr.Zero);
+            mouse_event(MOUSEEVENTF_MIDDLEUP, 0, 0, 0, UIntPtr.Zero);
+        }
+        catch { }
+    }
+
+    public static int RunHotkeyListener()
+    {
+        using var hook = new KeyboardHook(() =>
+        {
+            // Observe ESC globally without suppressing it, while the service
+            // stop command also releases any held mouse buttons.
+            if (EmergencyStop.IsControlActive) EmergencyStop.Request();
+        });
+        hook.Run();
+        return 0;
+    }
+
+    private sealed class KeyboardHook : IDisposable
+    {
+        private readonly Action _onEscape;
+        private readonly NativeMethods.LowLevelKeyboardProc _callback;
+        private IntPtr _hook;
+
+        public KeyboardHook(Action onEscape)
+        {
+            _onEscape = onEscape;
+            _callback = Callback;
+        }
+
+        public void Run()
+        {
+            _hook = NativeMethods.SetWindowsHookEx(13, _callback, NativeMethods.GetModuleHandle(null), 0);
+            if (_hook == IntPtr.Zero) throw new InvalidOperationException("Could not install global ESC hook");
+            NativeMethods.GetMessage(out _, IntPtr.Zero, 0, 0);
+        }
+
+        private IntPtr Callback(int code, IntPtr wParam, IntPtr lParam)
+        {
+            if (code >= 0 && wParam == (IntPtr)0x0100 && Marshal.ReadInt32(lParam) == 0x1B)
+                _onEscape();
+            return NativeMethods.CallNextHookEx(_hook, code, wParam, lParam);
+        }
+
+        public void Dispose()
+        {
+            if (_hook != IntPtr.Zero) NativeMethods.UnhookWindowsHookEx(_hook);
+        }
+    }
+
+    private static class NativeMethods
+    {
+        internal delegate IntPtr LowLevelKeyboardProc(int code, IntPtr wParam, IntPtr lParam);
+        [DllImport("user32.dll")] internal static extern IntPtr SetWindowsHookEx(int id, LowLevelKeyboardProc callback, IntPtr module, uint threadId);
+        [DllImport("user32.dll")] internal static extern bool UnhookWindowsHookEx(IntPtr hook);
+        [DllImport("user32.dll")] internal static extern IntPtr CallNextHookEx(IntPtr hook, int code, IntPtr wParam, IntPtr lParam);
+        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] internal static extern IntPtr GetModuleHandle(string? name);
+        [DllImport("user32.dll")] internal static extern sbyte GetMessage(out Message message, IntPtr window, uint min, uint max);
+        internal struct Message { public IntPtr HWnd, MessageId, WParam, LParam; public uint Time; public int X, Y; }
     }
 
     private static async Task<string> RecordAudioAsync(int seconds)

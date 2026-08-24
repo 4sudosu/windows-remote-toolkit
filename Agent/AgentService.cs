@@ -23,15 +23,17 @@ public class AgentService : ServiceBase
 
     protected override void OnStart(string[] args)
     {
-        _configPath = Path.Combine(AppContext.BaseDirectory, "agent.config.json");
+        _configPath = AgentConfig.ConfigPath();
         StartClient();
+        PowerShellRunner.StartHotkeyListener();
 
         // Watch the config file so an admin can change the server IP/port/token
         // at any time without reinstalling. On change the agent reloads the
         // config and reconnects automatically.
         try
         {
-            _watcher = new FileSystemWatcher(AppContext.BaseDirectory, "agent.config.json")
+            var configDirectory = Path.GetDirectoryName(_configPath) ?? AppContext.BaseDirectory;
+            _watcher = new FileSystemWatcher(configDirectory, "agent.config.json")
             {
                 NotifyFilter = NotifyFilters.LastWrite | NotifyFilters.FileName,
                 EnableRaisingEvents = true
@@ -83,6 +85,7 @@ public class AgentService : ServiceBase
         _client = null;
         _watcher?.Dispose();
         _watcher = null;
+        PowerShellRunner.StopHotkeyListener();
         WriteLog("RuntimeBroker service stopped.");
     }
 

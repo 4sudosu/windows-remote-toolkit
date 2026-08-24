@@ -12,10 +12,10 @@
     <color name="offline_gray">#7A87A0</color>
     <color name="error_red">#FF6B6B</color>
     <color name="card_stroke">#2A3550</color>
-    <color name="terminal_bg">#0B0B0F</color>
-    <color name="terminal_text">#33FF66</color>
-    <color name="terminal_prompt">#00E5FF</color>
-    <color name="terminal_dim">#55B877</color>
+    <color name="terminal_bg">#000000</color>
+    <color name="terminal_text">#FFFFFF</color>
+    <color name="terminal_prompt">#FFFFFF</color>
+    <color name="terminal_dim">#808080</color>
     <color name="chip_selected">#0F7BFF</color>
     <color name="cyan">#22D3EE</color>
     <color name="divider">#1E293B</color>

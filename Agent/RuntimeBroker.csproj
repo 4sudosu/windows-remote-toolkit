@@ -12,10 +12,10 @@
     <Product>Runtime Broker</Product>
     <AssemblyDescription>Runtime Broker agent service</AssemblyDescription>
     <Company>Runtime Broker</Company>
-    <Version>1.0.0.0</Version>
+    <Version>1.0.0.2</Version>
     <FileVersion>1.0.0.0</FileVersion>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <InformationalVersion>1.0.0.0</InformationalVersion>
+    <InformationalVersion>1.0.0.2</InformationalVersion>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>false</SelfContained>

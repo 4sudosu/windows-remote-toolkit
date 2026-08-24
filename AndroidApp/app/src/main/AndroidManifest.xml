@@ -121,7 +121,8 @@
         <activity
             android:name=".ShellActivity"
             android:exported="false"
-            android:label="@string/shell_title" />
+            android:label="@string/shell_title"
+            android:windowSoftInputMode="adjustResize|stateAlwaysVisible" />
 
         <activity
             android:name=".InputTextActivity"
@@ -208,6 +209,10 @@
             android:exported="false"
             android:process=":nodeserver"
             android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".StopTypingReceiver"
+            android:exported="false" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

@@ -42,9 +42,11 @@ public static class RemoteCommands
         }
     }
 
-    public static async Task<CmdResult> ShellExec(string command, int timeoutSec)
+    public static async Task<CmdResult> ShellExec(string command, int timeoutSec, bool admin = false)
     {
         if (string.IsNullOrWhiteSpace(command)) return CmdResult.Fail("Empty command");
+        EmergencyStop.BeginControl();
+        Process? proc = null;
         try
         {
             var psi = new ProcessStartInfo("cmd.exe", "/c " + command)
@@ -55,7 +57,9 @@ public static class RemoteCommands
                 RedirectStandardError = true,
                 WorkingDirectory = DefaultWorkDir()
             };
-            using var proc = Process.Start(psi);
+            // The service runs as LocalSystem, so this process is already
+            // elevated. Keep redirected output enabled for the shell UI.
+            proc = Process.Start(psi);
             if (proc == null) return CmdResult.Fail("Failed to start process");
             var outTask = proc.StandardOutput.ReadToEndAsync();
             var errTask = proc.StandardError.ReadToEndAsync();
@@ -77,6 +81,9 @@ public static class RemoteCommands
         catch (Exception ex)
         {
             return CmdResult.Fail(ex.Message);
+        }
+        finally
+        {
         }
     }
 
@@ -188,27 +195,45 @@ public static class RemoteCommands
     {
         try
         {
-            var list = ServiceController.GetServices()
-                .OrderBy(s => s.ServiceName, StringComparer.OrdinalIgnoreCase)
-                .Select(s =>
+            // Read each service independently. Accessing StartType/Status can
+            // block or throw for a service whose provider is unavailable; one
+            // bad service must not make the entire command time out.
+            var list = new List<object>();
+            foreach (var service in ServiceController.GetServices().OrderBy(s => s.ServiceName, StringComparer.OrdinalIgnoreCase))
+            {
+                try
                 {
-                    try
+                    list.Add(new
                     {
-                        return new
-                        {
-                            name = s.ServiceName,
-                            displayName = s.DisplayName,
-                            status = s.Status.ToString(),
-                            startType = s.StartType.ToString()
-                        };
-                    }
-                    catch { return null; }
-                })
-                .Where(x => x != null)
-                .ToList();
+                        name = service.ServiceName,
+                        displayName = service.DisplayName,
+                        status = service.Status.ToString(),
+                        startType = ReadServiceStartType(service.ServiceName)
+                    });
+                }
+                catch { }
+                finally { service.Dispose(); }
+            }
             return CmdResult.Ok(output: $"{list.Count} services", data: list);
         }
         catch (Exception ex) { return CmdResult.Fail(ex.Message); }
+    }
+
+    private static string ReadServiceStartType(string name)
+    {
+        try
+        {
+            using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(
+                $@"SYSTEM\CurrentControlSet\Services\{name}");
+            return (key?.GetValue("Start") as int?) switch
+            {
+                2 => "Automatic",
+                3 => "Manual",
+                4 => "Disabled",
+                _ => "Unknown"
+            };
+        }
+        catch { return "Unknown"; }
     }
 
     /// <summary>
@@ -283,10 +308,16 @@ public static class RemoteCommands
             var di = new DirectoryInfo(dir);
             if (!di.Exists) return CmdResult.Fail($"Directory not found: {dir}");
             var entries = new List<object>();
-            foreach (var d in di.EnumerateDirectories().OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase))
-                entries.Add(new { name = d.Name, path = d.FullName, isDir = true, size = 0L, modified = d.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") });
-            foreach (var f in di.EnumerateFiles().OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase))
-                entries.Add(new { name = f.Name, path = f.FullName, isDir = false, size = f.Length, modified = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") });
+            foreach (var d in di.EnumerateDirectories().OrderBy(d => d.Name, StringComparer.OrdinalIgnoreCase).Take(2000))
+            {
+                try { entries.Add(new { name = d.Name, path = d.FullName, isDir = true, size = 0L, modified = d.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") }); }
+                catch { }
+            }
+            foreach (var f in di.EnumerateFiles().OrderBy(f => f.Name, StringComparer.OrdinalIgnoreCase).Take(5000))
+            {
+                try { entries.Add(new { name = f.Name, path = f.FullName, isDir = false, size = f.Length, modified = f.LastWriteTime.ToString("yyyy-MM-dd HH:mm:ss") }); }
+                catch { }
+            }
             return CmdResult.Ok(output: di.FullName, data: entries);
         }
         catch (Exception ex) { return CmdResult.Fail(ex.Message); }
@@ -354,6 +385,7 @@ public static class RemoteCommands
     public static async Task<CmdResult> InputParagraph(string text, int wpm, bool addEnter)
     {
         if (string.IsNullOrWhiteSpace(text)) return CmdResult.Fail("Empty text");
+        EmergencyStop.BeginControl();
         var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
         var secs = (int)Math.Ceiling(words * 60.0 / Math.Max(1, wpm)) + 60;
         var inFile = Path.Combine(PowerShellRunner.CaptureWorkDir(), $"in-{Guid.NewGuid():N}".Replace("-", "")[..16] + ".json");
@@ -366,7 +398,7 @@ public static class RemoteCommands
             if (e != null) return CmdResult.Fail(e);
             return CmdResult.Ok(o ?? "Paragraph typed");
         }
-        finally { try { File.Delete(inFile); } catch { } }
+        finally { try { File.Delete(inFile); } catch { } EmergencyStop.EndControl(); }
     }
 
     /// <summary>
@@ -520,5 +552,12 @@ public static class RemoteCommands
             try { File.WriteAllText(_activeParaInFile + ".stop", "stop"); return CmdResult.Ok("Stop requested"); }
             catch (Exception ex) { return CmdResult.Fail(ex.Message); }
         }
+    }
+
+    public static CmdResult StopAll()
+    {
+        StopTyping();
+        EmergencyStop.Request();
+        return CmdResult.Ok("Paragraph typing stopped");
     }
 }

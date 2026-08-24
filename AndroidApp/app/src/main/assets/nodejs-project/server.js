@@ -46,6 +46,8 @@ function upsertRegistry(info) {
 
 const app = express();
 app.use(express.json({ limit: '200mb' }));
+// Serve the web dashboard (same UI as the PC server) at http://<phone-ip>:<port>/
+app.use(express.static(path.join(APP_DIR, 'dashboard')));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ noServer: true });
@@ -153,6 +155,24 @@ function failPendingFor(ws) {
   }
 }
 
+function cancelPendingFor(ws) {
+  for (const [taskId, task] of pending) {
+    if (task.agentWs === ws) {
+      pending.delete(taskId);
+      task.resolve({ success: false, error: 'Emergency stop requested' });
+    }
+  }
+}
+
+function stopLiveFor(machineName) {
+  for (const [viewer, state] of liveViewers) {
+    if (state.machineName !== machineName) continue;
+    if (state.timer) clearInterval(state.timer);
+    liveViewers.delete(viewer);
+    try { viewer.close(1000, 'Emergency stop'); } catch (e) {}
+  }
+}
+
 function requireAuth(req, res) {
   const given = String((req.body && req.body.password) || req.headers['x-admin-password'] || '');
   if (given !== ADMIN_PASSWORD) {
@@ -216,9 +236,21 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
     'input_paragraph', 'screen_rotate',
     'camera_photo', 'camera_video', 'mic_record',
-    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing'
+    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all'
   ]);
   if (!allowed.has(cmd)) return res.status(400).json({ success: false, error: 'Unknown command: ' + cmd });
+
+  if (cmd === 'stop_all') {
+    cancelPendingFor(agent.ws);
+    stopLiveFor(String(req.params.machineName || '').toLowerCase());
+    try {
+      agent.ws.send(JSON.stringify({ type: 'cmd', taskId: makeId(), cmd: cmd, params: {} }));
+      console.log('[STOP ALL] ' + req.params.machineName);
+      return res.json({ success: true, output: 'All automation stopped; input released' });
+    } catch (e) {
+      return res.status(409).json({ success: false, error: 'Agent offline' });
+    }
+  }
 
   if (params.async === true) {
     const rest = Object.assign({}, params);

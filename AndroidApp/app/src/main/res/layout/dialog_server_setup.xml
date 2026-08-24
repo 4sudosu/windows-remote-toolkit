@@ -6,14 +6,16 @@
     android:paddingStart="20dp"
     android:paddingEnd="20dp">
 
+    <!-- IP Field (only for Connect mode) -->
     <EditText
         android:id="@+id/inputIp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
-        android:hint="@string/ip_hint"
+        android:hint="@string/connect_ip_hint"
         android:inputType="text"
-        android:importantForAutofill="no" />
+        android:importantForAutofill="no"
+        android:visibility="gone" />
 
     <EditText
         android:id="@+id/inputPort"
@@ -22,7 +24,41 @@
         android:layout_marginTop="8dp"
         android:hint="@string/port_hint"
         android:inputType="number"
-        android:importantForAutofill="no" />
+        android:importantForAutofill="no"
+        android:visibility="gone" />
+
+    <android.widget.CheckBox
+        android:id="@+id/cbAllInterfaces"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:layout_marginBottom="4dp"
+        android:text="@string/launcher_run_all"
+        android:textColor="?attr/colorOnSurface"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/tvAllInterfacesWarning"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:layout_marginBottom="8dp"
+        android:text="@string/all_interfaces_warning"
+        android:textColor="@color/offline_gray"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
+    <EditText
+        android:id="@+id/inputAllInterfacesPassword"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:hint="@string/all_interfaces_password_hint"
+        android:inputType="textPassword"
+        android:importantForAutofill="no"
+        android:visibility="gone" />
 
     <EditText
         android:id="@+id/inputPassword"

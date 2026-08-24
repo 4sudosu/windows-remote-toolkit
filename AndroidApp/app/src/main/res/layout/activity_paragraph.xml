@@ -131,7 +131,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:text="@string/stop_typing"
-                android:visibility="gone"
+                android:visibility="visible"
                 style="@style/Widget.Material3.Button.OutlinedButton" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
@@ -157,7 +157,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:contentDescription="@string/watch_live"
-            android:scaleType="fitCenter" />
+            android:scaleType="matrix" />
 
         <TextView
             android:layout_width="wrap_content"

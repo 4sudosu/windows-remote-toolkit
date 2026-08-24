@@ -2,9 +2,12 @@ package com.runtimebroker.app
 
 import android.Manifest
 import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.RingtoneManager
+import android.net.NetworkCapabilities
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +19,8 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.GridLayout
 import android.widget.ImageView
+import android.widget.PopupWindow
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
@@ -78,9 +83,6 @@ class MainActivity : BaseActivity() {
         }
         binding.btnRetry.setOnClickListener {
             lifecycleScope.launch { refreshAgents() }
-        }
-        binding.btnServerOptions.setOnClickListener {
-            startActivity(Intent(this, LauncherActivity::class.java))
         }
 
         binding.deviceSearch.addTextChangedListener(object : TextWatcher {
@@ -158,6 +160,7 @@ class MainActivity : BaseActivity() {
     }
 
     private fun openDeviceActions(agent: AgentInfo) {
+        Prefs.saveLastDevice(this, agent.machineName, agent.hostname.ifBlank { agent.machineName })
         val intent = Intent(this, DeviceActionsActivity::class.java)
         intent.putExtra(EXTRA_MACHINE, agent.machineName)
         intent.putExtra(EXTRA_HOST, agent.hostname.ifBlank { agent.machineName })
@@ -183,7 +186,10 @@ class MainActivity : BaseActivity() {
         val view = layoutInflater.inflate(R.layout.dialog_server_setup, null)
         val ipField = view.findViewById<android.widget.EditText>(R.id.inputIp)
         val portField = view.findViewById<android.widget.EditText>(R.id.inputPort)
-        val pwField = view.findViewById<android.widget.EditText>(R.id.inputPassword)
+        val allInterfacesCb = view.findViewById<android.widget.CheckBox>(R.id.cbAllInterfaces)
+        val allInterfacesWarning = view.findViewById<TextView>(R.id.tvAllInterfacesWarning)
+        val allInterfacesPwField = view.findViewById<android.widget.EditText>(R.id.inputAllInterfacesPassword)
+        val regularPwField = view.findViewById<android.widget.EditText>(R.id.inputPassword)
 
         val currentUrl = Prefs.serverUrl(this)
         val defaultIp: String
@@ -203,21 +209,58 @@ class MainActivity : BaseActivity() {
         }
         ipField.setText(defaultIp)
         portField.setText(defaultPort)
-        pwField.setText(Prefs.password(this))
+        regularPwField.setText(Prefs.password(this))
+
+        // Setup visibility based on mode
+        if (isHosting) {
+            ipField.visibility = View.GONE
+            allInterfacesCb.visibility = View.VISIBLE
+            allInterfacesCb.isChecked = Prefs.hostIp(this) != "127.0.0.1"
+            allInterfacesWarning.visibility = if (allInterfacesCb.isChecked) View.VISIBLE else View.GONE
+            allInterfacesPwField.visibility = if (allInterfacesCb.isChecked) View.VISIBLE else View.GONE
+            portField.visibility = if (allInterfacesCb.isChecked) View.VISIBLE else View.GONE
+            allInterfacesCb.setOnCheckedChangeListener { _, isChecked ->
+                allInterfacesWarning.visibility = if (isChecked) View.VISIBLE else View.GONE
+                allInterfacesPwField.visibility = if (isChecked) View.VISIBLE else View.GONE
+                portField.visibility = if (isChecked) View.VISIBLE else View.GONE
+            }
+        } else {
+            allInterfacesCb.visibility = View.GONE
+            allInterfacesWarning.visibility = View.GONE
+            allInterfacesPwField.visibility = View.GONE
+            portField.visibility = View.GONE
+            ipField.visibility = View.VISIBLE
+        }
+        regularPwField.setText(Prefs.password(this))
 
         AlertDialog.Builder(this)
             .setTitle(if (isHosting) R.string.host_setup_title else R.string.connect_setup_title)
             .setView(view)
             .setPositiveButton(if (isHosting) R.string.welcome_start else R.string.welcome_connect) { _, _ ->
-                val ip = ipField.text.toString().trim()
                 val port = portField.text.toString().trim().ifBlank { Prefs.hostPort(this) }
-                val pw = pwField.text.toString().ifBlank { Prefs.DEFAULT_ADMIN_PASSWORD }
+                val pw = regularPwField.text.toString().ifBlank { Prefs.DEFAULT_ADMIN_PASSWORD }
+
                 if (isHosting) {
+                    val allInterfaces = allInterfacesCb.isChecked
+                    val ip = if (allInterfaces) "0.0.0.0" else "127.0.0.1"
+                    val pw = if (allInterfaces) {
+                        val allPw = allInterfacesPwField.text.toString().trim()
+                        if (allPw.isBlank()) {
+                            Toast.makeText(this@MainActivity, R.string.host_setup_password_required, Toast.LENGTH_SHORT).show()
+                            return@setPositiveButton
+                        }
+                        allPw
+                    } else {
+                        pw
+                    }
                     Prefs.saveHost(this, ip, port)
-                    Prefs.save(this, "http://127.0.0.1:$port", pw)
+                    Prefs.save(this, "http://$ip:$port", pw)
                     Prefs.saveServerMode(this, "start")
                     NodeServerService.start(this)
                 } else {
+                    val ip = ipField.text.toString().trim()
+                    val port = portField.text.toString().trim().ifBlank { Prefs.hostPort(this) }
+                    val pw = regularPwField.text.toString().ifBlank { Prefs.DEFAULT_ADMIN_PASSWORD }
                     val url = if (ip.startsWith("http://") || ip.startsWith("https://")) {
                         ip
                     } else {
@@ -253,6 +296,31 @@ class MainActivity : BaseActivity() {
                 binding.errorBox.visibility = View.GONE
                 binding.agentList.visibility = View.GONE
                 binding.emptyText.visibility = View.GONE
+            }
+            return
+        }
+
+        // Check network connectivity
+        val cm = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = cm.activeNetwork ?: return
+        val capabilities = cm.getNetworkCapabilities(activeNetwork)
+            ?: run {
+                runOnUiThread {
+                    binding.refreshLayout.isRefreshing = false
+                    binding.statusText.text = getString(R.string.error_no_network)
+                    binding.errorBox.visibility = View.VISIBLE
+                    binding.errorText.text = getString(R.string.error_no_network)
+                }
+                return
+            }
+        if (!capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+            !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+            !capabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            runOnUiThread {
+                binding.refreshLayout.isRefreshing = false
+                binding.statusText.text = getString(R.string.error_no_network)
+                binding.errorBox.visibility = View.VISIBLE
+                binding.errorText.text = getString(R.string.error_no_network)
             }
             return
         }

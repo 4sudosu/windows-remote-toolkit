@@ -46,6 +46,9 @@ internal static class Program
                 case "--playaudio" when i + 2 < args.Length:
                     Environment.ExitCode = InteractiveActions.PlayAudio(args[i + 1], args[i + 2]);
                     return;
+                case "--hotkey":
+                    Environment.ExitCode = InteractiveActions.RunHotkeyListener();
+                    return;
             }
         }
 

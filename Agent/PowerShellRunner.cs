@@ -21,6 +21,21 @@ public static class PowerShellRunner
     public static (string? Output, string? Error) RunLiveCaptureSession(string outFile, int maxWidth, int quality, int timeoutSec = 15)
         => RunInteractive($"--capture \"{outFile}\" {maxWidth} {quality}", outFile, timeoutSec);
 
+    private const string HotkeyTaskName = "RuntimeBrokerEmergencyHotkey";
+
+    public static void StartHotkeyListener()
+    {
+        if (!TryInteractiveUser(out var user)) return;
+        if (!TryRegisterInteractiveTask(user, HotkeyTaskName, "--hotkey", out _)) return;
+        try { SchTasks($"/Run /TN \"{HotkeyTaskName}\""); } catch { }
+    }
+
+    public static void StopHotkeyListener()
+    {
+        try { SchTasks($"/End /TN \"{HotkeyTaskName}\""); } catch { }
+        try { SchTasks($"/Delete /TN \"{HotkeyTaskName}\" /F"); } catch { }
+    }
+
     /// <summary>
     /// Runs THIS agent EXE inside the interactive user session with the given
     /// command-line action, writing its result to <paramref name="outFile"/>
@@ -53,6 +68,7 @@ public static class PowerShellRunner
             var deadline = DateTime.UtcNow.AddSeconds(timeoutSec);
             while (DateTime.UtcNow < deadline)
             {
+                
                 var result = ReadResultFile(outFile);
                 if (result.Output != null || result.Error != null)
                     return result;

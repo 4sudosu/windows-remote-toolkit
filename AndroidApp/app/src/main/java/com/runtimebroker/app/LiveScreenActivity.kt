@@ -101,6 +101,7 @@ class LiveScreenActivity : BaseActivity() {
         val bmpH = (if (rotated) bmp.width else bmp.height).toFloat()
         val base = if (fillMode) maxOf(vw / bmpW, vh / bmpH) else min(vw / bmpW, vh / bmpH)
         val s = base * scaleFactor
+        // Max pan so image doesn't go completely off-screen (center-anchored)
         val overX = (bmpW * s - vw) / 2f
         val overY = (bmpH * s - vh) / 2f
         panX = panX.coerceIn(-overX.coerceAtLeast(0f), overX.coerceAtLeast(0f))
@@ -123,13 +124,23 @@ class LiveScreenActivity : BaseActivity() {
 
                 override fun onFrame(imageBase64: String) {
                     runOnUiThread {
+                        // Fix base64 padding issues (server might send unpadded base64)
+                        var fixedBase64 = imageBase64.trim()
+                        val mod = fixedBase64.length % 4
+                        if (mod != 0) fixedBase64 = fixedBase64.padEnd(fixedBase64.length + (4 - mod), '=')
                         val bytes = try {
-                            Base64.decode(imageBase64, Base64.DEFAULT)
-                        } catch (_: IllegalArgumentException) {
+                            Base64.decode(fixedBase64, Base64.NO_WRAP)
+                        } catch (e: IllegalArgumentException) {
                             return@runOnUiThread
                         }
-                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                        if (bmp != null) {
+                        if (bytes.isEmpty()) return@runOnUiThread
+                        val options = BitmapFactory.Options().apply {
+                            inSampleSize = 1
+                            inMutable = false
+                            inPreferredConfig = Bitmap.Config.RGB_565
+                        }
+                        val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                        if (bmp != null && bmp.width > 0 && bmp.height > 0) {
                             val old = currentBitmap
                             currentBitmap = bmp
                             old?.recycle()
@@ -148,7 +159,11 @@ class LiveScreenActivity : BaseActivity() {
 
                 override fun onClosed() {
                     connected = false
-                    runOnUiThread { binding.statusText.text = getString(R.string.live_disconnected) }
+                    runOnUiThread {
+                        binding.statusText.text = getString(R.string.live_disconnected)
+                        // Auto-reconnect after 3 seconds
+                        binding.statusText.postDelayed({ startStream() }, 3000)
+                    }
                 }
             })
     }
@@ -172,13 +187,21 @@ class LiveScreenActivity : BaseActivity() {
         val s = baseScale * scaleFactor
 
         matrix.reset()
-        // Rotate around the bitmap center first…
-        matrix.postRotate(localRotateDegrees.toFloat(), bmp.width / 2f, bmp.height / 2f)
-        // …then scale around the bitmap center…
-        matrix.postScale(s, s, bmp.width / 2f, bmp.height / 2f)
-        // …then place centered in the view and apply the user's pan offset.
-        val dx = (viewWidth - bmpW * s) / 2f + panX
-        val dy = (viewHeight - bmpH * s) / 2f + panY
+
+        // 1. Move bitmap center to origin
+        matrix.postTranslate(-bmp.width / 2f, -bmp.height / 2f)
+
+        // 2. Rotate around origin (now at bitmap center)
+        if (localRotateDegrees != 0) {
+            matrix.postRotate(localRotateDegrees.toFloat())
+        }
+
+        // 3. Scale around origin
+        matrix.postScale(s, s)
+
+        // 4. Translate to view center + pan offset
+        val dx = viewWidth / 2f + panX
+        val dy = viewHeight / 2f + panY
         matrix.postTranslate(dx, dy)
 
         binding.liveImage.setImageMatrix(matrix)

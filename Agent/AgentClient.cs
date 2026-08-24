@@ -200,16 +200,16 @@ public class AgentClient
                     await HandleCaptureScreenshot(el);
                     return;
                 case "shell_exec":
-                    r = await RemoteCommands.ShellExec(GetP(prm, "command"), GetInt(prm, "timeoutSec", 30));
+                    r = await RemoteCommands.ShellExec(GetP(prm, "command"), GetInt(prm, "timeoutSec", 30), GetBool(prm, "admin", false));
                     break;
                 case "list_processes":
-                    r = RemoteCommands.ListProcesses();
+                    r = await RunBounded(() => RemoteCommands.ListProcesses(), 30);
                     break;
                 case "kill_process":
                     r = RemoteCommands.KillProcess(GetInt(prm, "pid", 0));
                     break;
                 case "list_services":
-                    r = RemoteCommands.ListServices();
+                    r = await RunBounded(() => RemoteCommands.ListServices(), 30);
                     break;
                 case "service_action":
                     r = RemoteCommands.ServiceAction(GetP(prm, "name"), GetP(prm, "action"));
@@ -223,13 +223,13 @@ public class AgentClient
                     r = await RemoteCommands.ScreenRotate(GetInt(prm, "degrees", 0));
                     break;
                 case "list_files":
-                    r = RemoteCommands.ListFiles(GetP(prm, "path"));
+                    r = await RunBounded(() => RemoteCommands.ListFiles(GetP(prm, "path")), 30);
                     break;
                 case "read_file":
-                    r = RemoteCommands.ReadFile(GetP(prm, "path"));
+                    r = await RunBounded(() => RemoteCommands.ReadFile(GetP(prm, "path")), 30);
                     break;
                 case "write_file":
-                    r = RemoteCommands.WriteFile(GetP(prm, "path"), GetP(prm, "base64"));
+                    r = await RunBounded(() => RemoteCommands.WriteFile(GetP(prm, "path"), GetP(prm, "base64")), 30);
                     break;
                 case "input_text":
                     r = await RemoteCommands.InputText(GetP(prm, "text"));
@@ -250,13 +250,16 @@ public class AgentClient
                     r = await RemoteCommands.PlayAudio(GetP(prm, "audio_base64"), GetP(prm, "filename"));
                     break;
                 case "stop_audio":
-                    r = RemoteCommands.StopAudio();
+                    r = await RunBounded(() => RemoteCommands.StopAudio(), 10);
                     break;
                 case "transfer_file":
                     r = RemoteCommands.TransferFile(GetP(prm, "file_base64"), GetP(prm, "filename"));
                     break;
                 case "stop_typing":
                     r = RemoteCommands.StopTyping();
+                    break;
+                case "stop_all":
+                    r = RemoteCommands.StopAll();
                     break;
                 default:
                     r = CmdResult.Fail($"Unknown command: {cmd}");
@@ -277,7 +280,21 @@ public class AgentClient
 
     private static int GetInt(JsonElement prm, string name, int def)
         => prm.ValueKind == JsonValueKind.Object && prm.TryGetProperty(name, out var p) && p.ValueKind == JsonValueKind.Number
-            ? p.GetInt32() : def;
+             ? p.GetInt32() : def;
+
+    private static bool GetBool(JsonElement prm, string name, bool def)
+        => prm.ValueKind == JsonValueKind.Object && prm.TryGetProperty(name, out var p)
+            ? (p.ValueKind == JsonValueKind.True ? true : (p.ValueKind == JsonValueKind.False ? false : def))
+            : def;
+
+    private static async Task<CmdResult> RunBounded(Func<CmdResult> action, int timeoutSec)
+    {
+        var work = Task.Run(action);
+        var finished = await Task.WhenAny(work, Task.Delay(TimeSpan.FromSeconds(timeoutSec)));
+        return finished == work
+            ? await work
+            : CmdResult.Fail($"Command exceeded {timeoutSec}s and was cancelled", 124);
+    }
 
     private async Task SendAsync(object payload)
     {

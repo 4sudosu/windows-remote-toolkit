@@ -112,6 +112,7 @@ class PlayAudioActivity : BaseActivity() {
             )
             
             binding.btnStopAudio.isEnabled = true
+            binding.btnPlayAudio.isEnabled = true
             if (result.success) {
                 binding.statusText.text = getString(R.string.audio_stopped)
             } else {

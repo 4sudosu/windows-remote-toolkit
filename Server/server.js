@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '.\\itdtpadmin';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 const APP_DIR = __dirname;
 const AGENTS_FILE = path.join(APP_DIR, 'agents.json');
@@ -156,6 +156,24 @@ function failPendingFor(ws) {
   }
 }
 
+function cancelPendingFor(ws) {
+  for (const [taskId, task] of pending) {
+    if (task.agentWs === ws) {
+      pending.delete(taskId);
+      task.resolve({ success: false, error: 'Emergency stop requested' });
+    }
+  }
+}
+
+function stopLiveFor(machineName) {
+  for (const [viewer, state] of liveViewers) {
+    if (state.machineName !== machineName) continue;
+    if (state.timer) clearInterval(state.timer);
+    liveViewers.delete(viewer);
+    try { viewer.close(1000, 'Emergency stop'); } catch {}
+  }
+}
+
 // ── auth + agent lookup helpers ──────────────────────────────────────────
 function requireAuth(req, res) {
   const expected = ADMIN_PASSWORD;
@@ -220,9 +238,21 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
     'input_paragraph', 'screen_rotate',
     'camera_photo', 'camera_video', 'mic_record',
-    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing'
+    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all'
   ]);
   if (!allowed.has(cmd)) return res.status(400).json({ success: false, error: `Unknown command: ${cmd}` });
+
+  if (cmd === 'stop_all') {
+    cancelPendingFor(agent.ws);
+    stopLiveFor(req.params.machineName.toLowerCase());
+    try {
+      agent.ws.send(JSON.stringify({ type: 'cmd', taskId: makeId(), cmd, params: {} }));
+      console.log(`[STOP ALL] ${req.params.machineName}`);
+      return res.json({ success: true, output: 'All automation stopped; input released' });
+    } catch {
+      return res.status(409).json({ success: false, error: 'Agent offline' });
+    }
+  }
 
   // Fire-and-forget for long-running commands (e.g. paragraph typing). The
   // phone watches progress on the live screen instead of waiting.

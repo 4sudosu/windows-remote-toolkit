@@ -107,13 +107,22 @@ class NodeServerService : Service() {
             try {
                 val nodeDir = File(filesDir, "nodejs-project")
                 if (wasApkUpdated()) {
-                    nodeDir.deleteRecursively()
+                    // A failed asset copy can leave this path as a file. The
+                    // Kotlin directory walker throws on that shape and kills
+                    // the foreground service before Node ever starts.
+                    if (nodeDir.exists()) {
+                        if (nodeDir.isDirectory) nodeDir.deleteRecursively()
+                        else nodeDir.delete()
+                    }
                     copyAssetFolder(assets, "nodejs-project", nodeDir.absolutePath)
                     saveApkTime()
                 }
+                // Bind to the CONFIGURED host (127.0.0.1 = localhost-only,
+                // 0.0.0.0 = all interfaces). Never hardcode the bind address.
+                val host = ip.ifBlank { "127.0.0.1" }
                 File(nodeDir, "server-config.json").writeText(
                     """
-                    {"host":"0.0.0.0","port":${port.ifBlank { "4777" }},"adminPassword":"${Prefs.password(this)}"}
+                    {"host":"$host","port":${port.ifBlank { "4777" }},"adminPassword":"${Prefs.password(this)}"}
                     """.trimIndent()
                 )
                 startNodeEngine(nodeDir)
@@ -129,10 +138,10 @@ class NodeServerService : Service() {
         val scriptPath = File(nodeDir, "server.js").absolutePath
         try {
             if (!started) {
-                started = true
                 System.loadLibrary("native-lib")
                 System.loadLibrary("node")
                 startNodeWithArguments(arrayOf("node", scriptPath))
+                started = true
             }
         } catch (t: Throwable) {
             android.util.Log.e("RuntimeBrokerServer", "Node engine unavailable", t)

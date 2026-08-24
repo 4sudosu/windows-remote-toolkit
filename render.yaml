@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: windows-remote-toolkit-server
+    runtime: node
+    region: oregon
+    plan: free
+    buildCommand: cd Server && npm install
+    startCommand: cd Server && node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3001"
+      - key: ADMIN_PASSWORD
+        sync: false
+    healthCheckPath: /api/health
+    autoDeploy: true

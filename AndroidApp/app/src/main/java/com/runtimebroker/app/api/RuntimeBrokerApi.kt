@@ -1,6 +1,8 @@
 package com.runtimebroker.app.api
 
+import com.runtimebroker.app.ConnectActivity
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
@@ -74,10 +76,14 @@ object RuntimeBrokerApi {
         }
     }
 
-    suspend fun shell(baseUrl: String, machineName: String, password: String, command: String, timeoutSec: Int = 30): CommandResult =
+    suspend fun shell(baseUrl: String, machineName: String, password: String, command: String, admin: Boolean = false, timeoutSec: Int = 30): CommandResult =
         command(baseUrl, machineName, password, "shell_exec", JSONObject()
             .put("command", command)
-            .put("timeoutSec", timeoutSec))
+            .put("timeoutSec", timeoutSec)
+            .put("admin", admin))
+
+    suspend fun shell(baseUrl: String, machineName: String, password: String, command: String, timeoutSec: Int = 30): CommandResult =
+        shell(baseUrl, machineName, password, command, false, timeoutSec)
 
     suspend fun listProcesses(baseUrl: String, machineName: String, password: String): CommandResult =
         command(baseUrl, machineName, password, "list_processes")
@@ -131,24 +137,39 @@ object RuntimeBrokerApi {
     }
 
     suspend fun agents(baseUrl: String, query: String): List<AgentInfo>? = withContext(Dispatchers.IO) {
-        try {
-            val url = buildString {
-                append(baseUrl.trimEnd('/'))
-                append("/api/agents")
-                if (query.isNotBlank()) {
-                    append("?q=").append(URLEncoder.encode(query, "UTF-8"))
+        // Retry logic for better connection stability
+        repeat(3) { attempt ->
+            try {
+                val url = buildString {
+                    append(baseUrl.trimEnd('/'))
+                    append("/api/agents")
+                    if (query.isNotBlank()) {
+                        append("?q=").append(URLEncoder.encode(query, "UTF-8"))
+                    }
                 }
+                val request = Request.Builder().url(url).build()
+                val callClient = client.newBuilder()
+                    .connectTimeout(5, TimeUnit.SECONDS)
+                    .readTimeout(10, TimeUnit.SECONDS)
+                    .writeTimeout(10, TimeUnit.SECONDS)
+                    .callTimeout(15, TimeUnit.SECONDS)
+                    .build()
+                callClient.newCall(request).execute().use { resp ->
+                    if (!resp.isSuccessful) {
+                        if (attempt == 2) return@withContext null
+delay(1000L * (attempt + 1))
+                        return@withContext null
+                    }
+                    val body = resp.body?.string() ?: return@withContext null
+                    val arr = JSONArray(body)
+                    return@withContext (0 until arr.length()).map { i -> parseAgent(arr.getJSONObject(i)) }
+                }
+            } catch (e: Exception) {
+                if (attempt == 2) return@withContext null
+                delay(1000L * (attempt + 1))
             }
-            val request = Request.Builder().url(url).build()
-            client.newCall(request).execute().use { resp ->
-                if (!resp.isSuccessful) return@withContext null
-                val body = resp.body?.string() ?: return@withContext null
-                val arr = JSONArray(body)
-                (0 until arr.length()).map { i -> parseAgent(arr.getJSONObject(i)) }
-            }
-        } catch (e: Exception) {
-            null
         }
+        null
     }
 
     suspend fun capture(baseUrl: String, machineName: String, password: String): CaptureResult =
@@ -193,4 +214,61 @@ object RuntimeBrokerApi {
         online = o.optBoolean("online"),
         lastSeen = o.optString("lastSeen")
     )
+
+    // Device connection check (used by ConnectActivity for 3-attempt lock)
+    suspend fun checkConnection(baseUrl: String, password: String, deviceId: String): ConnectActivity.ConnectionResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = buildString {
+                    append(baseUrl.trimEnd('/'))
+                    append("/api/config")
+                }
+                val payload = JSONObject()
+                    .put("password", password)
+                    .put("deviceId", deviceId)
+                val request = Request.Builder()
+                    .url(url)
+                    .post(payload.toString().toRequestBody(jsonType))
+                    .build()
+                client.newCall(request).execute().use { resp ->
+                    val body = resp.body?.string() ?: return@withContext ConnectActivity.ConnectionResult.Error("Empty response")
+                    val obj = JSONObject(body)
+                    when (resp.code) {
+                        200 -> ConnectActivity.ConnectionResult.Success(obj.optString("url", baseUrl))
+                        401, 403 -> ConnectActivity.ConnectionResult.AuthFailed(obj.optString("error", "Invalid credentials"))
+                        423 -> ConnectActivity.ConnectionResult.AuthFailed("Device blocked")
+                        else -> ConnectActivity.ConnectionResult.Error(obj.optString("error", "HTTP ${resp.code}"))
+                    }
+                }
+            } catch (e: Exception) {
+                ConnectActivity.ConnectionResult.Error(e.message ?: "Network error")
+            }
+        }
+
+    // Device status check (used by "Check Status" button)
+    suspend fun checkDeviceStatus(baseUrl: String, deviceId: String): ConnectActivity.ConnectionResult =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = buildString {
+                    append(baseUrl.trimEnd('/'))
+                    append("/api/config/status")
+                }
+                val payload = JSONObject().put("deviceId", deviceId)
+                val request = Request.Builder()
+                    .url(url)
+                    .post(payload.toString().toRequestBody(jsonType))
+                    .build()
+                client.newCall(request).execute().use { resp ->
+                    val body = resp.body?.string() ?: return@withContext ConnectActivity.ConnectionResult.Error("Empty response")
+                    val obj = JSONObject(body)
+                    when (resp.code) {
+                        200 -> ConnectActivity.ConnectionResult.Success(obj.optString("message", "OK"))
+                        403 -> ConnectActivity.ConnectionResult.AuthFailed(obj.optString("error", "Still locked"))
+                        else -> ConnectActivity.ConnectionResult.Error(obj.optString("error", "HTTP ${resp.code}"))
+                    }
+                }
+            } catch (e: Exception) {
+                ConnectActivity.ConnectionResult.Error(e.message ?: "Network error")
+            }
+        }
 }

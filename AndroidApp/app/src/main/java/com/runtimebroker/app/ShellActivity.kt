@@ -73,7 +73,8 @@ class ShellActivity : BaseActivity() {
                 Prefs.serverUrl(this@ShellActivity),
                 machineName,
                 Prefs.password(this@ShellActivity),
-                "cd"
+                "cd /d C:\\Windows\\System32",
+                true
             )
             if (result.success) {
                 cwd = result.output?.trim()?.lines()?.lastOrNull { it.isNotBlank() } ?: ""
@@ -82,14 +83,17 @@ class ShellActivity : BaseActivity() {
             }
         }
 
+        // Keep keyboard open and focus on command input
+        binding.commandInput.post {
+            binding.commandInput.requestFocus()
+            val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(binding.commandInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+
         binding.commandInput.setOnEditorActionListener { _, _, _ ->
             runCommand()
             true
         }
-        binding.btnQuickDir.setOnClickListener { runQuick("dir") }
-        binding.btnQuickIpconfig.setOnClickListener { runQuick("ipconfig") }
-        binding.btnQuickTasklist.setOnClickListener { runQuick("tasklist") }
-        binding.btnQuickNetstat.setOnClickListener { runQuick("netstat -an") }
 
         binding.commandInput.setRawInputType(InputType.TYPE_CLASS_TEXT)
 
@@ -235,7 +239,6 @@ class ShellActivity : BaseActivity() {
 
         runJob?.cancel()
         runJob = lifecycleScope.launch {
-            binding.commandInput.isEnabled = false
             binding.statusText.text = getString(R.string.running)
             var elapsed = 0
             val ticker = launch {
@@ -249,10 +252,10 @@ class ShellActivity : BaseActivity() {
                 Prefs.serverUrl(this@ShellActivity),
                 machineName,
                 Prefs.password(this@ShellActivity),
-                effective
+                effective,
+                true
             )
             ticker.cancel()
-            binding.commandInput.isEnabled = true
             history.append("${getString(R.string.shell_prompt)} $command\n")
             if (result.success) {
                 val out = result.output?.takeIf { it.isNotBlank() } ?: getString(R.string.no_output)
@@ -276,6 +279,12 @@ class ShellActivity : BaseActivity() {
             binding.outputScroll.post { binding.outputScroll.fullScroll(View.FOCUS_DOWN) }
             binding.commandInput.text.clear()
             updateSuggestions()
+            // Keep keyboard open and focus on input
+            binding.commandInput.post {
+                binding.commandInput.requestFocus()
+                val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
+                imm.showSoftInput(binding.commandInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+            }
         }
     }
 

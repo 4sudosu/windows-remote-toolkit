@@ -8,9 +8,20 @@ public class AgentConfig
     public string Token { get; set; } = "";
     public int ReconnectDelaySec { get; set; } = 5;
 
+    public static string ConfigPath()
+    {
+        var candidates = new[]
+        {
+            Path.Combine(AppContext.BaseDirectory, "agent.config.json"),
+            Path.Combine(Path.GetDirectoryName(Environment.ProcessPath ?? "") ?? "", "agent.config.json"),
+            Path.Combine(Path.GetDirectoryName(System.Diagnostics.Process.GetCurrentProcess().MainModule?.FileName ?? "") ?? "", "agent.config.json")
+        };
+        return candidates.FirstOrDefault(File.Exists) ?? candidates[0];
+    }
+
     public static AgentConfig? Load()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "agent.config.json");
+        var path = ConfigPath();
         if (!File.Exists(path)) return null;
         try
         {

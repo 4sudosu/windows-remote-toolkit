@@ -304,14 +304,19 @@
     <string name="launcher_start_desc">Host the dashboard + accept agents from this phone</string>
     <string name="launcher_connect">🔗  Connect to Server</string>
     <string name="launcher_connect_desc">View a server that is already running</string>
-    <string name="launcher_run_all">🌐  Run Server on 0.0.0.0</string>
-    <string name="launcher_run_all_desc">Host on all interfaces — every user on your network can access it</string>
-    <string name="launcher_developer">👨‍💻  Connect Developer</string>
-    <string name="launcher_port_title">🚀 Start Server</string>
+<string name="launcher_run_all">🌐  Run Server on All Network Interfaces</string>
+    <string name="launcher_run_all_desc">Host on all network interfaces — every user on your network can access it (requires password)</string>
+    <string name="host_setup_title_all">Start Server on All Interfaces</string>
+    <string name="all_interfaces_warning">When enabled, server will be accessible from all network interfaces. A strong password is required for security.</string>
+    <string name="all_interfaces_password_hint">Enter a strong password</string>
+    <string name="host_setup_password_required">Password is required when using All Network Interfaces</string>
+<string name="launcher_port_title">🚀 Start Server</string>
     <string name="launcher_port_msg">Enter the port to host the dashboard on. Agents on your network can connect to this phone.</string>
+    <string name="launcher_port_msg_local">Server will run on this device only (127.0.0.1) — nobody else on the network can access it. Enter the port to use.</string>
     <string name="launcher_start">Start</string>
     <string name="launcher_invalid_port">Invalid port</string>
     <string name="launcher_server_started">Server running on 0.0.0.0:%1$s</string>
+    <string name="launcher_developer">👨‍💻  Connect Developer</string>
 
     <!-- Unlock gate -->
     <string name="unlock_hint">Owner password</string>
@@ -360,8 +365,15 @@
 
     <!-- Input Paragraph Stop -->
     <string name="stop_typing">Stop Typing</string>
-    <string name="typing_stopped">Typing stopped</string>
+    <string name="stop_all">STOP ALL</string>
+    <string name="stop_all_done">All automation stopped</string>
+    <string name="stop_all_failed">Could not stop automation</string>
+    <string name="stop_all_no_device">No device selected</string>
+<string name="typing_stopped">Typing stopped</string>
     <string name="typing_stop_failed">Failed to stop typing: %1$s</string>
+    <string name="not_typing">Not typing</string>
+    <string name="error_no_network">No network connection. Check Wi-Fi or mobile data.</string>
+    <string name="password_required">Password is required</string>
 
     <!-- Drag and Drop -->
     <string name="drag_to_reorder">Drag to reorder</string>
@@ -459,8 +471,18 @@
     <string name="action_media">Recorded media</string>
     <string name="action_media_desc">Browse, preview and delete recordings</string>
     <string name="delete">Delete</string>
-    <string name="media_playing">Playing: %1$s (tap again to stop)</string>
+<string name="media_playing">Playing: %1$s (tap again to stop)</string>
     <string name="media_stop_hint">Tap the play button again to stop</string>
+
+    <!-- Device Block (3-attempt lock) -->
+    <string name="check_status">🔓 Check Status</string>
+    <string name="checking_status">Checking…</string>
+    <string name="device_locked_hint">Device locked — use "Check Status"</string>
+    <string name="attempts_remaining_hint">Attempts remaining: %1$d</string>
+    <string name="connect_auth_failed">Invalid password. Attempt %1$d of %2$d</string>
+    <string name="device_locked_message">Device locked after 3 failed attempts. Tap "Check Status" to unlock.</string>
+    <string name="status_unlocked">Device unlocked. You can now connect.</string>
+    <string name="status_still_locked">Still locked. Admin must unlock from dashboard.</string>
 </resources>
 
 

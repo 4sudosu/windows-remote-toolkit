@@ -1,0 +1,40 @@
+The Windows services were not starting because the RuntimeBroker service configuration was broken in two ways:
+
+The service was disabled
+START_TYPE: 4 DISABLED
+Windows will not start a disabled service, even when the application tries to start it.
+
+The executable path was incorrect
+The service was configured to launch:
+
+C:\Program Files\RuntimeBroker\RuntimeBroker\RuntimeBroker.exe --service
+The correct path should be:
+
+C:\Program Files\RuntimeBroker\RuntimeBroker.exe --service
+The extra RuntimeBroker\ directory caused Windows Service Control Manager error 7000, because it could not find the configured executable.
+
+The agent itself was able to run in console mode, so the executable was not fundamentally broken. The problem was the Windows service registration, not the service code.
+
+The correct repair is:
+
+sc.exe config RuntimeBroker `
+  binPath= '"C:\Program Files\RuntimeBroker\RuntimeBroker.exe" --service' `
+  start= auto
+
+sc.exe start RuntimeBroker
+After fixing it, verify:
+
+sc.exe qc RuntimeBroker
+sc.exe query RuntimeBroker
+Expected values:
+
+BINARY_PATH_NAME:
+"C:\Program Files\RuntimeBroker\RuntimeBroker.exe" --service
+
+START_TYPE:
+AUTO_START
+
+STATE:
+RUNNING
+The earlier command failures happened because the agent service was stopped, so the Android app could see the server but had no active Windows agent available to execute commands.
+

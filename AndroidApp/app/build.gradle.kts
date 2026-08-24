@@ -11,8 +11,8 @@ android {
         applicationId = "com.runtimebroker.app"
         minSdk = 24
         targetSdk = 34
-        versionCode = 8
-        versionName = "4.0"
+        versionCode = 10
+        versionName = "4.2"
 
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")

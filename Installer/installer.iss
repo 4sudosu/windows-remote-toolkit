@@ -13,12 +13,12 @@
 
 #define MyAppName "RuntimeBroker"
 #ifndef MyAppVersion
-#define MyAppVersion "1.0"
+#define MyAppVersion "1.0.0.2"
 #endif
 #define MyAppExeName "RuntimeBroker.exe"
 #define MyAppServiceName "RuntimeBroker"
 #ifndef MyOutputBaseFilename
-#define MyOutputBaseFilename "RuntimeBroker-Setup-V1"
+#define MyOutputBaseFilename "RuntimeBroker-Setup-1.0.0.2"
 #endif
 #define MyAppId "{{7A1F0C4B-5E2D-4A8F-9B3C-1D6E8A2F4B0C}"
 
@@ -190,7 +190,9 @@ begin
       '  sc.exe delete $svc | Out-Null' + #13#10 +
       '  Start-Sleep -Milliseconds 800' + #13#10 +
       '}' + #13#10 +
-      'New-Service -Name $svc -BinaryPathName $binPath -StartupType Automatic -DisplayName ''Runtime Broker'' | Out-Null' + #13#10 +
+       'New-Service -Name $svc -BinaryPathName $binPath -StartupType Automatic -DisplayName ''Runtime Broker'' | Out-Null' + #13#10 +
+       '# Repair any stale service registration left by an older install.' + #13#10 +
+       'sc.exe config $svc binPath= $binPath start= auto | Out-Null' + #13#10 +
       'sc.exe failure $svc reset= 86400 actions= restart/5000/restart/10000/restart/30000 | Out-Null' + #13#10 +
       'sc.exe start $svc | Out-Null' + #13#10 +
       'if (-not (Get-Service $svc -ErrorAction SilentlyContinue)) { exit 1 }' + #13#10 +

@@ -4,7 +4,9 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/terminal_bg"
-    android:orientation="vertical">
+    android:orientation="vertical"
+    android:focusable="true"
+    android:focusableInTouchMode="true">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
@@ -53,10 +55,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="monospace"
-                android:padding="12dp"
+                android:padding="8dp"
                 android:textColor="@color/terminal_text"
                 android:textIsSelectable="true"
-                android:textSize="13sp" />
+                android:textSize="11sp" />
 
             <!-- Inline command line — typing happens directly on the terminal -->
             <LinearLayout
@@ -88,12 +90,13 @@
                     android:background="@null"
                     android:fontFamily="monospace"
                     android:hint="@string/terminal_type_cmd"
-                    android:inputType="textNoSuggestions|textVisiblePassword"
+                    android:imeOptions="flagNoExtractUi"
+                    android:inputType="textNoSuggestions"
                     android:maxLines="1"
                     android:singleLine="true"
                     android:textColor="@color/terminal_text"
                     android:textColorHint="@color/terminal_dim"
-                    android:textSize="15sp" />
+                    android:textSize="13sp" />
             </LinearLayout>
         </LinearLayout>
     </ScrollView>
@@ -176,60 +179,6 @@
                 android:minWidth="0dp"
                 android:text="@string/key_ctrl_c"
                 android:textColor="@color/error_red"
-                android:textSize="12sp" />
-        </LinearLayout>
-    </HorizontalScrollView>
-
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="4dp"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:paddingHorizontal="12dp">
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnQuickDir"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/quick_dir"
-                android:textColor="@color/terminal_prompt"
-                android:textSize="12sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnQuickIpconfig"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/quick_ipconfig"
-                android:textColor="@color/terminal_prompt"
-                android:textSize="12sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnQuickTasklist"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/quick_tasklist"
-                android:textColor="@color/terminal_prompt"
-                android:textSize="12sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnQuickNetstat"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:minWidth="0dp"
-                android:text="@string/quick_netstat"
-                android:textColor="@color/terminal_prompt"
                 android:textSize="12sp" />
         </LinearLayout>
     </HorizontalScrollView>
