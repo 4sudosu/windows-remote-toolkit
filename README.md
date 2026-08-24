@@ -183,6 +183,12 @@ graph LR
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/05-settings.png" width="19%" alt="Settings">
 </p>
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/06-processes.png" width="19%" alt="Processes">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/07-services.png" width="19%" alt="Services">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/08-file-manager.png" width="19%" alt="File Manager">
+</p>
+
 > 📸 *Screenshots from v4.2 — 8 themes, 7 app icons, 5 notification tones + custom*
 
 ---
