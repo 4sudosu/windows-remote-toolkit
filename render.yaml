@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: runtimebroker-server
+    runtime: node
+    repo: https://github.com/4sudosu/windows-remote-toolkit
+    branch: main
+    buildCommand: cd Server && npm install
+    startCommand: cd Server && node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ADMIN_PASSWORD
+        generateValue: true
+        sync: false
+    autoDeploy: true

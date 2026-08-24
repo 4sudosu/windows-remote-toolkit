@@ -176,19 +176,11 @@ graph LR
 ## 📱 Android App Screenshots
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/01-dashboard.png" width="19%" alt="Dashboard">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/03-live-screen.png" width="19%" alt="Live Screen">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/04-shell.png" width="19%" alt="Shell">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/08-processes.png" width="19%" alt="Processes">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/05-file-manager.png" width="19%" alt="File Manager">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/09-services.png" width="19%" alt="Services">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/06-camera.png" width="19%" alt="Camera">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/07-microphone.png" width="19%" alt="Microphone">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/11-screenshot.png" width="19%" alt="Screenshot">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/master/assets/screenshots/10-settings.png" width="19%" alt="Settings">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/01-dashboard.png" width="19%" alt="Dashboard">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/02-device-detail.png" width="19%" alt="Device Detail">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/03-live-screen.png" width="19%" alt="Live Screen">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/04-shell.png" width="19%" alt="Shell">
+  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/05-settings.png" width="19%" alt="Settings">
 </p>
 
 > 📸 *Screenshots from v4.2 — 8 themes, 7 app icons, 5 notification tones + custom*

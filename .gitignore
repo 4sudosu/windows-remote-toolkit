@@ -4,7 +4,6 @@ installer-output/
 Ready to Push/
 Agent/bin/
 Agent/obj/
-Server/node_modules/
 
 # IDE/Editor
 .vscode/
@@ -40,3 +39,10 @@ AndroidApp/local.properties
 # NuGet
 packages/
 *.nupkg
+
+# Docker
+.docker/
+
+# Test artifacts
+coverage/
+.nyc_output/
