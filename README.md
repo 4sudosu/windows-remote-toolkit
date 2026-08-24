@@ -178,14 +178,8 @@ graph LR
 <p align="center">
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/01-dashboard.png" width="19%" alt="Dashboard">
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/02-device-detail.png" width="19%" alt="Device Detail">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/03-live-screen.png" width="19%" alt="Live Screen">
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/04-shell.png" width="19%" alt="Shell">
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/05-settings.png" width="19%" alt="Settings">
-</p>
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/06-processes.png" width="19%" alt="Processes">
-  <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/07-services.png" width="19%" alt="Services">
   <img src="https://raw.githubusercontent.com/4sudosu/windows-remote-toolkit/main/docs/screenshots/08-file-manager.png" width="19%" alt="File Manager">
 </p>
 
