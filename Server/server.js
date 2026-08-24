@@ -7,13 +7,103 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '';
 
 const APP_DIR = __dirname;
 const AGENTS_FILE = path.join(APP_DIR, 'agents.json');
+const CONFIG_FILE = path.join(APP_DIR, 'server.config.json');
+const BLOCKED_DEVICES_FILE = path.join(APP_DIR, 'blocked_devices.json');
+const MAX_LOGIN_ATTEMPTS = 3;
+const MAX_DEVICE_ATTEMPTS = 3;
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const SESSION_COOKIE = 'wsm_auth';
+const sessions = new Map();
+let failedLoginCount = 0;
+let loginLocked = false;
+
+function loadAdminPassword() {
+  if (process.env.ADMIN_PASSWORD) return process.env.ADMIN_PASSWORD;
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    return String(config.adminPassword || config.password || '');
+  } catch {
+    return '';
+  }
+}
+
+const ADMIN_PASSWORD = loadAdminPassword();
+if (!ADMIN_PASSWORD) console.warn('ADMIN_PASSWORD is not configured; authenticated connections will be rejected.');
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const makeId = () => crypto.randomBytes(8).toString('hex');
+
+function readJsonFile(file, fallback) {
+  try { return JSON.parse(fs.readFileSync(file, 'utf8')); }
+  catch { return fallback; }
+}
+
+function writeJsonFile(file, value) {
+  try { fs.writeFileSync(file, JSON.stringify(value, null, 2)); }
+  catch (e) { console.warn(`Could not write ${path.basename(file)}:`, e.message); }
+}
+
+function readBlockedDevices() {
+  return readJsonFile(BLOCKED_DEVICES_FILE, {});
+}
+
+function isDeviceBlocked(deviceId) {
+  return Boolean(deviceId && readBlockedDevices()[deviceId]?.locked);
+}
+
+function recordFailedAttempt(deviceId) {
+  if (!deviceId) return { attempts: 0, locked: false };
+  const blocked = readBlockedDevices();
+  const current = blocked[deviceId] || { attempts: 0, locked: false };
+  current.attempts += 1;
+  if (current.attempts >= MAX_DEVICE_ATTEMPTS) {
+    current.locked = true;
+    current.lockedAt = new Date().toISOString();
+  }
+  blocked[deviceId] = current;
+  writeJsonFile(BLOCKED_DEVICES_FILE, blocked);
+  return current;
+}
+
+function unlockDevice(deviceId) {
+  const blocked = readBlockedDevices();
+  delete blocked[deviceId];
+  writeJsonFile(BLOCKED_DEVICES_FILE, blocked);
+}
+
+function parseCookies(req) {
+  return Object.fromEntries(String(req.headers.cookie || '').split(';').map(part => {
+    const [key, ...value] = part.trim().split('=');
+    return [key, decodeURIComponent(value.join('='))];
+  }).filter(([key]) => key));
+}
+
+function signSession() {
+  const token = crypto.randomBytes(32).toString('hex');
+  sessions.set(token, Date.now() + SESSION_TTL_MS);
+  return token;
+}
+
+function isAuthed(req) {
+  const headerPassword = String(req.headers['x-admin-password'] || '');
+  if (ADMIN_PASSWORD && headerPassword === ADMIN_PASSWORD) return true;
+  const token = parseCookies(req)[SESSION_COOKIE];
+  const expiry = sessions.get(token);
+  if (!expiry || expiry <= Date.now()) {
+    if (token) sessions.delete(token);
+    return false;
+  }
+  return true;
+}
+
+function requireAuth(req, res, next) {
+  if (isAuthed(req)) return next();
+  if (req.path.startsWith('/api/')) return res.status(401).json({ success: false, error: 'Authentication required' });
+  return res.redirect('/login');
+}
 
 function readAgentsFile() {
   try { return JSON.parse(fs.readFileSync(AGENTS_FILE, 'utf8')); }
@@ -39,7 +129,61 @@ function upsertRegistry(info) {
 // ── HTTP app ─────────────────────────────────────────────────────────────
 const app = express();
 app.use(express.json({ limit: '200mb' }));
-app.use(express.static(path.join(APP_DIR, 'dashboard')));
+app.get('/login', (_req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'login.html')));
+app.get('/style.css', (_req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'style.css')));
+app.post('/api/login', (req, res) => {
+  if (loginLocked) return res.status(423).json({ success: false, error: 'Login locked until server restart' });
+  if (!ADMIN_PASSWORD || String(req.body?.password || '') !== ADMIN_PASSWORD) {
+    failedLoginCount += 1;
+    loginLocked = failedLoginCount >= MAX_LOGIN_ATTEMPTS;
+    return res.status(loginLocked ? 423 : 403).json({
+      success: false,
+      error: loginLocked ? 'Login locked until server restart' : 'Invalid admin password',
+      attemptsLeft: Math.max(0, MAX_LOGIN_ATTEMPTS - failedLoginCount)
+    });
+  }
+  failedLoginCount = 0;
+  const token = signSession();
+  const secure = req.secure || req.headers['x-forwarded-proto'] === 'https';
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${SESSION_TTL_MS / 1000}${secure ? '; Secure' : ''}`);
+  res.json({ success: true });
+});
+app.post('/api/logout', (req, res) => {
+  const token = parseCookies(req)[SESSION_COOKIE];
+  if (token) sessions.delete(token);
+  res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
+  res.json({ success: true });
+});
+app.post('/api/config', (req, res) => {
+  const deviceId = String(req.headers['x-device-id'] || req.body?.deviceId || '');
+  const password = String(req.headers['x-admin-password'] || req.body?.password || '');
+  if (!deviceId) return res.status(400).json({ success: false, error: 'Missing device ID' });
+  if (isDeviceBlocked(deviceId)) return res.status(423).json({ success: false, error: 'Device blocked', deviceBlocked: true, unlockAt: 0 });
+  if (!ADMIN_PASSWORD || password !== ADMIN_PASSWORD) {
+    const state = recordFailedAttempt(deviceId);
+    return res.status(state.locked ? 423 : 403).json({
+      success: false,
+      error: state.locked ? 'Device blocked' : 'Invalid admin password',
+      authError: true,
+      deviceBlocked: state.locked,
+      attemptsLeft: Math.max(0, MAX_DEVICE_ATTEMPTS - state.attempts)
+    });
+  }
+  unlockDevice(deviceId);
+  res.json({ success: true, authError: false, deviceBlocked: false });
+});
+app.post(['/api/device-status', '/api/config/status'], (req, res) => {
+  const deviceId = String(req.headers['x-device-id'] || req.body?.deviceId || '');
+  if (!deviceId) return res.status(400).json({ success: false, error: 'Missing device ID' });
+  if (isDeviceBlocked(deviceId)) return res.status(403).json({ success: false, error: 'Device is still blocked', deviceBlocked: true });
+  res.json({ success: true, message: 'Device is allowed', deviceBlocked: false });
+});
+app.get('/api/health', (_req, res) => {
+  res.json({ ok: true, agents: agents.size, version: '2.1.0' });
+});
+app.use(requireAuth);
+app.use(express.static(path.join(APP_DIR, 'dashboard'), { index: false }));
+app.get('/', (_req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'index.html')));
 
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`RuntimeBroker server running at: http://0.0.0.0:${PORT}`);
@@ -65,7 +209,7 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
   const token = url.searchParams.get('token') || '';
-  if (!token) {
+  if (!ADMIN_PASSWORD || token !== ADMIN_PASSWORD) {
     ws.close(4001, 'Unauthorized');
     return;
   }
@@ -174,14 +318,6 @@ function stopLiveFor(machineName) {
   }
 }
 
-// ── auth + agent lookup helpers ──────────────────────────────────────────
-function requireAuth(req, res) {
-  const expected = ADMIN_PASSWORD;
-  const given = String((req.body && req.body.password) || req.headers['x-admin-password'] || '');
-  if (given !== expected) return res.status(403).json({ success: false, error: 'Invalid admin password' });
-  return null;
-}
-
 function findAgent(req, res) {
   const agent = agents.get((req.params.machineName || '').toLowerCase());
   if (!agent || agent.ws.readyState !== agent.ws.OPEN) {
@@ -206,7 +342,6 @@ app.get('/api/agents', (req, res) => {
 });
 
 app.post('/api/monitor/:machineName/screenshot', async (req, res) => {
-  if (requireAuth(req, res)) return;
   const agent = findAgent(req, res);
   if (!agent) return;
   try {
@@ -224,7 +359,6 @@ app.post('/api/monitor/:machineName/screenshot', async (req, res) => {
 
 // Generic command endpoint — all remote-control features go through here.
 app.post('/api/monitor/:machineName/command', async (req, res) => {
-  if (requireAuth(req, res)) return;
   const agent = findAgent(req, res);
   if (!agent) return;
 
@@ -281,8 +415,15 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
   }
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ ok: true, agents: agents.size, version: '2.0.0' });
+app.get('/api/admin/blocked-devices', (_req, res) => {
+  res.json(readBlockedDevices());
+});
+
+app.post('/api/admin/unlock-device', (req, res) => {
+  const deviceId = String(req.body?.deviceId || '');
+  if (!deviceId) return res.status(400).json({ success: false, error: 'Missing device ID' });
+  unlockDevice(deviceId);
+  res.json({ success: true });
 });
 
 // ── Live screen WebSocket (phone → server → agent) ──────────────────────

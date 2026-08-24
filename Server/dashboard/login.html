@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Runtime Broker Login</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="login-page">
+    <form id="loginForm" class="tool-panel login-card">
+      <h1>Runtime Broker</h1>
+      <p class="muted">Enter the server administrator password.</p>
+      <input id="password" class="search-input" type="password" autocomplete="current-password" required autofocus>
+      <button class="btn-primary" type="submit">Sign in</button>
+      <p id="loginError" class="muted" role="alert"></p>
+    </form>
+  </main>
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const error = document.getElementById('loginError');
+      error.textContent = 'Signing in...';
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({password: document.getElementById('password').value})
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) location.replace('/');
+      else error.textContent = data.attemptsLeft == null ? (data.error || 'Login failed') : `${data.error}. ${data.attemptsLeft} attempt(s) left.`;
+    });
+  </script>
+</body>
+</html>
