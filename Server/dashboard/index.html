@@ -104,53 +104,61 @@
           <div>
             <button class="back-button" onclick="showDevices()">← Devices</button>
             <h1>⚙️ Settings</h1>
+            <p class="muted">Personalize the dashboard — everything saves automatically.</p>
           </div>
         </div>
 
         <div class="settings-card">
-          <h3>🎨 Theme</h3>
-          <p class="muted" id="themeSubtitle">Pick one of 10 hand-crafted combos — saved automatically.</p>
-          <div class="swatch-grid" id="themeRow"></div>
+          <div class="card-head"><span class="card-icon theme-icon">🎨</span><div><h3>Theme</h3><p class="muted" id="themeSubtitle">Pick one of 10 hand-crafted combos — saved automatically.</p></div></div>
+          <div class="theme-grid" id="themeRow"></div>
         </div>
 
         <div class="settings-card">
-          <h3>🔔 Notifications</h3>
+          <div class="card-head"><span class="card-icon notif-icon">🔔</span><div><h3>Notifications</h3><p class="muted">Get alerted the moment a new agent comes online.</p></div></div>
+
           <label class="switch-row">
-            <span>Alert me when a new agent connects to the server.</span>
+            <span class="switch-label"><b>Desktop notifications</b><small>Shows a system toast when any device connects. Requires browser permission.</small></span>
             <input type="checkbox" id="notifToggle">
           </label>
-          <div class="row-inline">
+
+          <div class="switch-row">
+            <span class="switch-label"><b>Permission status</b><small id="permStatus">Checking…</small></span>
+            <button class="btn-muted" onclick="requestPerm()">Allow</button>
+          </div>
+
+          <div class="row-inline tone-row">
+            <div class="switch-label" style="flex:1"><b>Notification tone</b><small>Plays with every new-agent alert.</small></div>
             <select id="toneSelect" class="search-input">
-              <option value="system">System default</option>
-              <option value="chime">Chime</option>
-              <option value="alert">Alert</option>
-              <option value="ding">Ding</option>
-              <option value="soft">Soft</option>
+              <option value="system">🔊 System default</option>
+              <option value="chime">🎵 Chime</option>
+              <option value="alert">🚨 Alert</option>
+              <option value="ding">🔔 Ding</option>
+              <option value="soft">💤 Soft</option>
             </select>
-            <button class="btn-muted" onclick="testTone()">▶ Test</button>
+            <button class="btn-primary" onclick="testTone()">▶ Test</button>
+          </div>
+          <p class="muted tiny-status" id="toneStatus"></p>
+        </div>
+
+        <div class="settings-card">
+          <div class="card-head"><span class="card-icon server-icon">🖧</span><div><h3>Server</h3><p class="muted">Where this dashboard is being served from.</p></div></div>
+          <div class="kv-grid">
+            <div><small>🌐 Address</small><b id="srvAddress"></b></div>
+            <div><small>🏠 Host</small><b id="srvHost"></b></div>
+            <div><small>🔌 Port</small><b id="srvPort"></b></div>
+            <div><small>📦 Server version</small><b id="srvVersion"></b></div>
+            <div><small>🖥️ Connected agents</small><b id="srvAgents"></b></div>
+            <div><small>🕐 Last checked</small><b id="srvChecked">—</b></div>
           </div>
         </div>
 
         <div class="settings-card">
-          <h3>🖧 Server</h3>
-          <p class="muted">Where this dashboard is being served from.</p>
-          <div class="kv-grid">
-            <div><small>Address</small><b id="srvAddress"></b></div>
-            <div><small>Host</small><b id="srvHost"></b></div>
-            <div><small>Port</small><b id="srvPort"></b></div>
-            <div><small>Server version</small><b id="srvVersion"></b></div>
-            <div><small>Connected agents</small><b id="srvAgents"></b></div>
-          </div>
-        </div>
-
-        <div class="settings-card">
-          <h3>📞 Contact</h3>
-          <p class="muted">Reach out for help or ideas.</p>
-          <div class="kv-grid">
-            <div><small>Telegram</small><b>@4sudosu</b></div>
-            <div><small>Instagram</small><b>@4sudo.su</b></div>
-            <div><small>Gmail</small><b>4sudo.su@gmail.com</b></div>
-            <div><small>GitHub</small><b>@4sudosu</b></div>
+          <div class="card-head"><span class="card-icon contact-icon">📞</span><div><h3>Contact</h3><p class="muted">Reach out for help, bugs or ideas.</p></div></div>
+          <div class="contact-grid">
+            <a class="contact-item tg" href="https://t.me/4sudosu" target="_blank" rel="noopener"><span class="ci-logo">✈️</span><span><small>Telegram</small><b>@4sudosu</b></span></a>
+            <a class="contact-item ig" href="https://instagram.com/4sudo.su" target="_blank" rel="noopener"><span class="ci-logo">📸</span><span><small>Instagram</small><b>@4sudo.su</b></span></a>
+            <a class="contact-item gm" href="mailto:4sudo.su@gmail.com"><span class="ci-logo">✉️</span><span><small>Gmail</small><b>4sudo.su@gmail.com</b></span></a>
+            <a class="contact-item gh" href="https://github.com/4sudosu" target="_blank" rel="noopener"><span class="ci-logo">🐙</span><span><small>GitHub</small><b>@4sudosu</b></span></a>
           </div>
         </div>
       </section>

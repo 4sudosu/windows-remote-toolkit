@@ -30,3 +30,29 @@
 .kv-grid>div{background:var(--surface2);border:1px solid var(--border);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:4px}
 .kv-grid small{color:var(--muted);font-size:.7rem;text-transform:uppercase;letter-spacing:.05em}
 .kv-grid b{font-size:.88rem;word-break:break-all}
+/* ── settings v2: organized cards ── */
+.card-head{display:flex;align-items:flex-start;gap:13px;margin-bottom:16px}
+.card-head h3{margin:0 0 3px;font-size:1.05rem}
+.card-icon{width:44px;height:44px;flex:none;border-radius:12px;display:grid;place-items:center;font-size:1.25rem;background:var(--surface2);border:1px solid var(--border)}
+.theme-icon{background:#7c3aed22;border-color:#7c3aed55}
+.notif-icon{background:#f59e0b22;border-color:#f59e0b55}
+.server-icon{background:#10b98122;border-color:#10b98155}
+.contact-icon{background:#0ea5e922;border-color:#0ea5e955}
+.theme-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:9px;margin-top:12px}
+.theme-tile{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 6px;border-radius:12px;border:2px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text);transition:transform .12s,border-color .15s}
+.theme-tile:hover{transform:translateY(-2px)}
+.theme-tile.active{border-color:var(--blue);box-shadow:0 0 0 3px color-mix(in srgb,var(--blue) 30%,transparent)}
+.tt-preview{width:100%;height:34px;border-radius:8px}
+.tt-name{font-size:.68rem;font-weight:700;color:var(--muted)}
+.theme-tile.active .tt-name{color:var(--blue)}
+.switch-label{display:flex;flex-direction:column;gap:3px;font-size:.86rem}
+.switch-label small{color:var(--muted);font-size:.73rem;font-weight:400;line-height:1.45}
+.tone-row{align-items:center}
+.tiny-status{min-height:16px;margin:8px 0 0;font-size:.75rem;color:#6ee7b7}
+.contact-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:4px}
+.contact-item{display:flex;align-items:center;gap:11px;text-decoration:none;color:var(--text);background:var(--surface2);border:1px solid var(--border);border-radius:11px;padding:12px 14px;transition:transform .12s,border-color .15s}
+.contact-item:hover{transform:translateY(-2px)}
+.contact-item small{display:block;color:var(--muted);font-size:.7rem}
+.contact-item b{font-size:.85rem}
+.ci-logo{width:38px;height:38px;flex:none;border-radius:10px;display:grid;place-items:center;font-size:1.1rem;background:var(--surface);border:1px solid var(--border)}
+.tg:hover{border-color:#229ed9}.ig:hover{border-color:#e1306c}.gm:hover{border-color:#ea4335}.gh:hover{border-color:#fff}
