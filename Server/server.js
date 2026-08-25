@@ -500,12 +500,7 @@ const interval = setInterval(() => {
     }
     agent.ws.isAlive = false;
     try {
-      // Protocol ping (pong handled by ws lib) ...
       agent.ws.ping();
-      // ... plus app-level frame so bytes flow through Render's proxy.
-      // Keeps NAT/proxy state warm and lets clients detect dead sockets fast.
-      agent.ws.send(JSON.stringify({ type: 'hb', t: Date.now() }));
-      // Enable OS-level TCP keepalive probes on the raw socket.
       const sock = agent.ws._socket;
       if (sock && sock.setKeepAlive) sock.setKeepAlive(true, 15000);
     } catch { agents.delete(machineName); }
