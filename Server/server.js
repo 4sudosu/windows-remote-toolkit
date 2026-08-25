@@ -34,24 +34,12 @@ const ADMIN_PASSWORD = loadAdminPassword();
 if (!ADMIN_PASSWORD) console.warn('ADMIN_PASSWORD is not configured; authenticated connections will be rejected.');
 
 // Agent token for WebSocket authentication (separate from admin password).
-// Leave AGENT_TOKEN empty to allow agents to connect WITHOUT a token.
-function loadAgentToken() {
-  if (process.env.AGENT_TOKEN !== undefined) return String(process.env.AGENT_TOKEN);
-  try {
-    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
-    if (config.agentToken !== undefined) return String(config.agentToken);
-    return null;
-  } catch {
-    return null;
-  }
-}
+// Set AGENT_TOKEN to disable token validation entirely (agents connect without ?token=).
+// To require a token, set AGENT_TOKEN env var or add agentToken to server.config.json.
+const AGENT_TOKEN = '';
 
-const AGENT_TOKEN = loadAgentToken();
-if (AGENT_TOKEN === null) {
-  // Not configured explicitly: fall back to admin password for safety.
-  AGENT_TOKEN = ADMIN_PASSWORD;
-}
-if (!AGENT_TOKEN) console.warn('AGENT token validation is DISABLED — agents can connect without a token.');
+ // Token validation disabled — agents can connect without ?token=
+if (false) console.warn('AGENT token validation is ENABLED — agents must provide ?token= in WS URL.');
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const makeId = () => crypto.randomBytes(8).toString('hex');
@@ -229,8 +217,8 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
   const token = url.searchParams.get('token') || '';
-  // If AGENT_TOKEN is set, validate it. If empty/disabled, allow any connection.
-  if (AGENT_TOKEN && token !== AGENT_TOKEN) {
+  // AGENT_TOKEN is disabled — allow any connection without ?token=
+  if (false && token !== AGENT_TOKEN) {
     ws.close(4001, 'Unauthorized');
     return;
   }
