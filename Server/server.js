@@ -439,8 +439,9 @@ app.post('/api/admin/unlock-device', (req, res) => {
 const liveViewers = new Map(); // viewerWs -> { machineName, timer, lastAt }
 
 liveWss.on('connection', (ws, req, machineName, url) => {
+  // Token check removed — phone can connect without ?token= in URL
+  // if (token !== ADMIN_PASSWORD) { ws.close(4001, 'Unauthorized'); return; }
   const token = url.searchParams.get('token') || '';
-  if (token !== ADMIN_PASSWORD) { ws.close(4001, 'Unauthorized'); return; }
   const agent = agents.get((machineName || '').toLowerCase());
   if (!agent || agent.ws.readyState !== agent.ws.OPEN) { ws.close(4004, 'Agent offline'); return; }
 
