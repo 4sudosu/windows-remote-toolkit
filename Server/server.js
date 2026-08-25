@@ -187,7 +187,7 @@ app.post(['/api/device-status', '/api/config/status'], (req, res) => {
   res.json({ success: true, message: 'Device is allowed', deviceBlocked: false });
 });
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, agents: agents.size, version: '2.1.0' });
+  res.json({ ok: true, agents: agents.size, version: '2.2.0' });
 });
 app.use(requireAuth);
 app.use(express.static(path.join(APP_DIR, 'dashboard'), { index: false }));
