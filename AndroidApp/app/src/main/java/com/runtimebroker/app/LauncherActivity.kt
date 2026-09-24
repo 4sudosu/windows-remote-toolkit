@@ -26,8 +26,15 @@ class LauncherActivity : BaseActivity() {
         setContentView(R.layout.activity_launcher)
 
         updateChecker = UpdateChecker(this)
-        setLauncherActionsEnabled(false)
-        checkForUpdates()
+        if (BuildConfig.UPDATE_GATE_ENABLED) {
+            setLauncherActionsEnabled(false)
+            checkForUpdates()
+        } else {
+            // No-update-check build: gate disabled, all actions open.
+            updateChecked = true
+            setLauncherActionsEnabled(true)
+            findViewById<TextView>(R.id.tvStatus).text = getString(R.string.update_disabled)
+        }
         updateStatus()
 
         findViewById<Button>(R.id.btnStartServer).setOnClickListener { promptStartServer() }

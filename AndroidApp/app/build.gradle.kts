@@ -17,6 +17,10 @@ android {
         ndk {
             abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
         }
+
+        // Update gate switch (WinSysMonitor V2 pattern): standard builds must
+        // verify releases/latest; the "noupdate" build skips the check.
+        buildConfigField("boolean", "UPDATE_GATE_ENABLED", "true")
     }
 
     buildTypes {
@@ -40,6 +44,19 @@ android {
                 }
             }
         }
+        create("noupdate") {
+            initWith(getByName("debug"))
+            // Same package/version so it installs over any 4.3 build.
+            versionNameSuffix = "-noupdate"
+            buildConfigField("boolean", "UPDATE_GATE_ENABLED", "false")
+            applicationVariants.all {
+                val variant = this
+                variant.outputs.all {
+                    (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
+                        "RuntimeBroker${variant.versionName}.apk"
+                }
+            }
+        }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -50,6 +67,7 @@ android {
     }
     buildFeatures {
         viewBinding = true
+        buildConfig = true
     }
     sourceSets {
         getByName("main") {

@@ -54,6 +54,7 @@
     <string name="update_now">Download update</string>
     <string name="update_exit">Exit</string>
     <string name="update_checking">Checking for updates…</string>
+    <string name="update_disabled">Update check disabled (no-update build)</string>
     <string name="update_uptodate">Up to date</string>
     <string name="update_failed_title">Update check required</string>
     <string name="update_failed_msg">The app cannot be used until the latest version is verified. Check your internet connection and try again.</string>
