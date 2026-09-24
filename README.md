@@ -153,6 +153,10 @@ graph LR
 
 > If the agent won't connect: verify the IP with ping, `Test-NetConnection <ip> -Port 4777`, confirm the scheme is `ws://`, and confirm the token matches what the server expects.
 
+**Demo setups that are known-good:**
+- LAN (phone hosts the server): agent `{"ServerUrl":"ws://<phone-lan-ip>:4777/ws/agent","Token":"<server-password>","ReconnectDelaySec":5}`, app → `http://127.0.0.1:4777` + same password.
+- Render (cloud): agent `{"ServerUrl":"wss://<your-app>.onrender.com/ws/agent","Token":"","ReconnectDelaySec":5}` (e.g. `wss://window-toolkit-v2-server.onrender.com/ws/agent`), app → `https://<your-app>.onrender.com` + `ADMIN_PASSWORD`. No agent token unless the server sets `AGENT_TOKEN`.
+
 ---
 
 ## 🚀 Quick Start (3 Steps)
