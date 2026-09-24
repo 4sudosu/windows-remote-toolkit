@@ -296,8 +296,8 @@ server.on('upgrade', (req, socket, head) => {
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, 'http://localhost');
   const token = url.searchParams.get('token') || '';
-  // AGENT_TOKEN is disabled — allow any connection without ?token=
-  if (false && token !== AGENT_TOKEN) {
+  // Token enforced only when AGENT_TOKEN is explicitly set; otherwise open.
+  if (AGENT_TOKEN && token !== AGENT_TOKEN) {
     ws.close(4001, 'Unauthorized');
     return;
   }
