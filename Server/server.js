@@ -7,6 +7,9 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
+const SERVER_VERSION = '2.2.0';
+// GitHub repo the Android update gate checks (releases/latest). Override via env.
+const UPDATE_REPO = process.env.UPDATE_REPO || '4sudosu/WindowRemoteToolkitV2';
 
 const APP_DIR = __dirname;
 const AGENTS_FILE = path.join(APP_DIR, 'agents.json');
@@ -16,7 +19,39 @@ const MAX_LOGIN_ATTEMPTS = 3;
 const MAX_DEVICE_ATTEMPTS = 3;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const SESSION_COOKIE = 'wsm_auth';
+const SESSIONS_FILE = path.join(APP_DIR, 'sessions.json');
+// Sessions persist to disk so logins survive Render free-tier sleeps/restarts.
 const sessions = new Map();
+function loadSessions() {
+  try {
+    const saved = JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    if (saved && typeof saved === 'object') {
+      const now = Date.now();
+      for (const [token, expiry] of Object.entries(saved)) {
+        if (typeof token === 'string' && Number(expiry) > now) sessions.set(token, Number(expiry));
+      }
+    }
+  } catch { /* first boot — no file yet */ }
+}
+let sessionsSaveTimer = null;
+function saveSessions() {
+  try {
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(Object.fromEntries(sessions)));
+  } catch (e) { console.warn('Could not write sessions.json:', e.message); }
+}
+function saveSessionsSoon() {
+  if (sessionsSaveTimer) return;
+  sessionsSaveTimer = setTimeout(() => { sessionsSaveTimer = null; saveSessions(); }, 1000);
+}
+loadSessions();
+setInterval(() => {
+  let changed = false;
+  const now = Date.now();
+  for (const [token, expiry] of sessions) {
+    if (expiry <= now) { sessions.delete(token); changed = true; }
+  }
+  if (changed) saveSessions();
+}, 60 * 60 * 1000);
 let failedLoginCount = 0;
 let loginLocked = false;
 
@@ -33,13 +68,24 @@ function loadAdminPassword() {
 const ADMIN_PASSWORD = loadAdminPassword();
 if (!ADMIN_PASSWORD) console.warn('ADMIN_PASSWORD is not configured; authenticated connections will be rejected.');
 
-// Agent token for WebSocket authentication (separate from admin password).
-// Set AGENT_TOKEN to disable token validation entirely (agents connect without ?token=).
-// To require a token, set AGENT_TOKEN env var or add agentToken to server.config.json.
-const AGENT_TOKEN = '';
+// Optional agent token for WebSocket authentication (separate from admin
+// password). Unset/empty = any agent may connect (dashboard/API still need
+// ADMIN_PASSWORD). Set AGENT_TOKEN to require it.
+function loadAgentToken() {
+  if (process.env.AGENT_TOKEN !== undefined) return String(process.env.AGENT_TOKEN);
+  try {
+    const config = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+    if (config.agentToken !== undefined) return String(config.agentToken);
+    return null;
+  } catch {
+    return null;
+  }
+}
 
- // Token validation disabled — agents can connect without ?token=
-if (false) console.warn('AGENT token validation is ENABLED — agents must provide ?token= in WS URL.');
+// Token is enforced ONLY when explicitly set (and non-empty). Otherwise any
+// agent may connect — ADMIN_PASSWORD still guards the dashboard/API.
+let AGENT_TOKEN = loadAgentToken() || '';
+if (!AGENT_TOKEN) console.warn('AGENT token validation is DISABLED — agents can connect without a token.');
 
 // ── helpers ──────────────────────────────────────────────────────────────
 const makeId = () => crypto.randomBytes(8).toString('hex');
@@ -92,6 +138,7 @@ function parseCookies(req) {
 function signSession() {
   const token = crypto.randomBytes(32).toString('hex');
   sessions.set(token, Date.now() + SESSION_TTL_MS);
+  saveSessionsSoon();
   return token;
 }
 
@@ -158,7 +205,7 @@ app.post('/api/login', (req, res) => {
 });
 app.post('/api/logout', (req, res) => {
   const token = parseCookies(req)[SESSION_COOKIE];
-  if (token) sessions.delete(token);
+  if (token && sessions.delete(token)) saveSessionsSoon();
   res.setHeader('Set-Cookie', `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0`);
   res.json({ success: true });
 });
@@ -187,9 +234,41 @@ app.post(['/api/device-status', '/api/config/status'], (req, res) => {
   res.json({ success: true, message: 'Device is allowed', deviceBlocked: false });
 });
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true, agents: agents.size, version: '2.2.0' });
+  res.json({ ok: true, agents: agents.size, version: SERVER_VERSION });
+});
+// Public version info for the Android update gate + dashboards (no secrets).
+app.get('/api/version', (_req, res) => {
+  res.json({
+    version: SERVER_VERSION,
+    repo: UPDATE_REPO,
+    updateUrl: `https://github.com/${UPDATE_REPO}/releases/latest`,
+    agents: agents.size
+  });
 });
 app.use(requireAuth);
+
+// ── SSE events (live device notifications) ─────────────────────────────
+// Authed via requireAuth above (cookie session or X-Admin-Password header).
+// The Android app streams this for instant connect notifications.
+const sseClients = new Set();
+function broadcastSSE(event, data) {
+  const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  for (const res of sseClients) {
+    try { res.write(payload); } catch { sseClients.delete(res); }
+  }
+}
+app.get('/api/events', (req, res) => {
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+    'X-Accel-Buffering': 'no'
+  });
+  res.write('retry: 3000\n\n');
+  sseClients.add(res);
+  const keep = setInterval(() => { try { res.write(': ping\n\n'); } catch { /* noop */ } }, 25000);
+  req.on('close', () => { clearInterval(keep); sseClients.delete(res); });
+});
 app.use(express.static(path.join(APP_DIR, 'dashboard'), { index: false }));
 app.get('/', (_req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'index.html')));
 
@@ -237,6 +316,7 @@ wss.on('connection', (ws, req) => {
     const machineName = ws.machineName;
     if (machineName) {
       agents.delete(machineName);
+      try { broadcastSSE('agent-offline', { machineName }); } catch { /* noop */ }
       console.log(`[AGENT OFFLINE] ${machineName}`);
     }
   });
@@ -264,6 +344,15 @@ function handleMessage(ws, msg) {
       ws.info = info;
       agents.set(machineName, { ws, info, lastSeen: Date.now() });
       upsertRegistry(info);
+      try {
+        broadcastSSE('agent-online', {
+          machineName,
+          hostname: info.hostname,
+          model: info.model,
+          ip: info.ip,
+          serial: info.serial
+        });
+      } catch { /* noop */ }
       console.log(`[AGENT ONLINE] ${machineName} | ${info.model} | ${info.username} | ${info.ip}`);
       ws.send(JSON.stringify({ type: 'registered', machineName }));
       break;

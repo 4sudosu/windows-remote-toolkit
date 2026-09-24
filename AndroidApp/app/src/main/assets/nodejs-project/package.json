@@ -1,0 +1,14 @@
+{
+  "name": "runtime-broker-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runtime Broker embedded server (runs on-device via nodejs-mobile)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "ws": "^8.21.3"
+  }
+}

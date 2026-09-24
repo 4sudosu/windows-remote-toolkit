@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_refresh"
+        android:icon="@drawable/ic_refresh"
+        android:title="@string/refresh"
+        app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_launcher"
+        android:title="@string/action_launcher"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_connect"
+        android:title="@string/action_change_server"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_stop_server"
+        android:title="@string/stop_server"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_web"
+        android:title="@string/action_web"
+        app:showAsAction="never" />
+</menu>

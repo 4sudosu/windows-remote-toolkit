@@ -1,0 +1,186 @@
+<!-- RuntimeBroker 24x7 agent — installer (WiX v5 MSI + Burn Setup EXE).
+     Install:  RuntimeBroker-Setup-1.0.0.2.exe   (asks: server IP, port,
+               optional token, service name)
+     Custom:   RuntimeBroker-Setup-1.0.0.2.exe /quiet SERVERIP=192.168.1.10 SERVERPORT=4777 SERVERTOKEN=secret SERVICENAME=Foo
+     Or MSI:   msiexec /i RuntimeBroker-Setup-1.0.0.2.msi SERVERIP=... SERVERPORT=... SERVERTOKEN=... SERVICENAME=...
+     The service runs as LocalSystem with crash recovery; agent.config.json
+     is written by the EXE itself and ACL-locked (SYSTEM/Admins RW). -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="RuntimeBroker"
+           Manufacturer="RuntimeBroker"
+           Version="1.0.0.2"
+           UpgradeCode="9B3EDC29-C36D-4CD0-B91C-5C909063EB58"
+           Scope="perMachine">
+
+    <MajorUpgrade DowngradeErrorMessage="A newer version of RuntimeBroker is already installed." />
+
+    <!-- Overridable at install time:
+         msiexec /i ... SERVICENAME=Foo SERVERIP=192.168.1.10 SERVERPORT=4777 SERVERTOKEN=secret
+         The token is optional (leave empty if the server disables token checks). -->
+    <Property Id="SERVICENAME" Value="RuntimeBroker" Secure="yes" />
+    <Property Id="SERVERIP" Value="127.0.0.1" Secure="yes" />
+    <Property Id="SERVERPORT" Value="4777" Secure="yes" />
+    <Property Id="SERVERTOKEN" Secure="yes" />
+
+    <Media Id="1" Cabinet="RuntimeBroker.cab" EmbedCab="yes" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="RuntimeBroker">
+          <Component Id="AgentExe" Guid="*" Bitness="always64">
+            <File Id="RuntimeBrokerExe"
+                  Source="publish-single\RuntimeBroker.exe"
+                  KeyPath="yes" />
+            <!-- The agent EXE is WinExe: these helpers show no window. -->
+            <ServiceInstall Id="AgentService"
+                            Name="[SERVICENAME]"
+                            DisplayName="[SERVICENAME]"
+                            Description="RuntimeBroker remote monitoring agent"
+                            Account="LocalSystem"
+                            Start="auto"
+                            Type="ownProcess"
+                            ErrorControl="normal"
+                            Interactive="no" />
+            <ServiceControl Id="AgentServiceControl"
+                            Name="[SERVICENAME]"
+                            Start="install"
+                            Stop="both"
+                            Remove="uninstall"
+                            Wait="yes" />
+          </Component>
+          <Component Id="AgentConfig" Guid="*" Bitness="always64">
+            <!-- Placeholder so the component has a key path; the real config
+                 is rewritten and ACL-locked by the write-config step below. -->
+            <File Id="AgentConfigPlaceholder"
+                  Source="Installer\placeholder.config"
+                  Name="agent.config.json"
+                  KeyPath="yes" />
+            <RemoveFile Id="RemoveConfig" Name="agent.config.json" On="uninstall" />
+          </Component>
+      </Directory>
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="RuntimeBroker Agent" Level="1">
+      <ComponentRef Id="AgentExe" />
+      <ComponentRef Id="AgentConfig" />
+    </Feature>
+
+    <!-- Write + ACL-lock agent.config.json after files land, before start. -->
+    <SetProperty Id="CA_WriteConfig"
+                 Value="&quot;[INSTALLFOLDER]RuntimeBroker.exe&quot; --write-config --host &quot;[SERVERIP]&quot; --port &quot;[SERVERPORT]&quot; --token &quot;[SERVERTOKEN]&quot;"
+                 Before="CA_WriteConfig"
+                 Sequence="execute" />
+    <CustomAction Id="CA_WriteConfig"
+                  Property="CA_WriteConfig"
+                  ExeCommand=""
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- 24x7 crash recovery after the service exists. -->
+    <SetProperty Id="CA_Configure"
+                 Value="&quot;[INSTALLFOLDER]RuntimeBroker.exe&quot; --configure-service --name &quot;[SERVICENAME]&quot;"
+                 Before="CA_Configure"
+                 Sequence="execute" />
+    <CustomAction Id="CA_Configure"
+                  Property="CA_Configure"
+                  ExeCommand=""
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CA_WriteConfig" Before="StartServices" Condition="NOT Installed" />
+      <Custom Action="CA_Configure" After="StartServices" Condition="NOT Installed" />
+    </InstallExecuteSequence>
+
+    <!-- Custom wizard UI: Welcome -> Server Configuration -> Verify.
+         The server URL, token and service name are asked every install
+         (msiexec properties SERVICENAME / SERVERURL / SERVERTOKEN still
+         override for silent installs). -->
+    <UI>
+    <DialogRef Id="ErrorDlg" />
+    <DialogRef Id="FatalError" />
+    <DialogRef Id="FilesInUse" />
+    <DialogRef Id="MsiRMFilesInUse" />
+    <DialogRef Id="UserExit" />
+    <DialogRef Id="ProgressDlg" />
+
+    <Dialog Id="RB_Welcome" Width="370" Height="270" Title="RuntimeBroker Setup" NoMinimize="yes">
+      <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="20"
+               Transparent="yes" NoPrefix="yes" Text="RuntimeBroker Agent" />
+      <Control Id="Description" Type="Text" X="25" Y="30" Width="320" Height="60"
+               Transparent="yes" NoPrefix="yes"
+               Text="This installs the RuntimeBroker monitoring agent as a 24x7 Windows service (LocalSystem) with crash recovery. Click Next to enter the server details." />
+      <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+        <Publish Event="NewDialog" Value="RB_Config" Condition="1" />
+      </Control>
+      <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+        <Publish Event="SpawnDialog" Value="UserExit" Condition="1" />
+      </Control>
+    </Dialog>
+
+    <Dialog Id="RB_Config" Width="370" Height="270" Title="RuntimeBroker Setup" NoMinimize="yes">
+      <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="20"
+               Transparent="yes" NoPrefix="yes" Text="Server Configuration" />
+      <Control Id="Description" Type="Text" X="25" Y="30" Width="320" Height="25"
+               Transparent="yes" NoPrefix="yes"
+               Text="Where should the agent connect? The config is written and locked automatically." />
+      <Control Id="IpLabel" Type="Text" X="25" Y="62" Width="200" Height="12"
+               Transparent="yes" NoPrefix="yes" Text="Server &amp;IP / hostname:" />
+      <Control Id="PortLabel" Type="Text" X="235" Y="62" Width="110" Height="12"
+               Transparent="yes" NoPrefix="yes" Text="&amp;Port:" />
+      <Control Id="IpEdit" Type="Edit" X="25" Y="75" Width="200" Height="18" Property="SERVERIP" />
+      <Control Id="PortEdit" Type="Edit" X="235" Y="75" Width="110" Height="18" Property="SERVERPORT" Number="yes" />
+      <Control Id="TokenLabel" Type="Text" X="25" Y="100" Width="320" Height="12"
+               Transparent="yes" NoPrefix="yes" Text="Agent &amp;token (optional — leave empty if not required):" />
+      <Control Id="TokenEdit" Type="Edit" X="25" Y="113" Width="320" Height="18" Property="SERVERTOKEN" Password="yes" />
+      <Control Id="SvcLabel" Type="Text" X="25" Y="138" Width="320" Height="12"
+               Transparent="yes" NoPrefix="yes" Text="Windows service &amp;name (rename on every reinstall):" />
+      <Control Id="SvcEdit" Type="Edit" X="25" Y="151" Width="320" Height="18" Property="SERVICENAME" />
+      <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+        <Publish Event="NewDialog" Value="RB_Welcome" Condition="1" />
+      </Control>
+      <Control Id="Next" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Next">
+        <Publish Event="NewDialog" Value="RB_Verify" Condition="SERVERIP AND SERVERPORT AND SERVICENAME" />
+        <Publish Event="SpawnDialog" Value="RB_BadInput" Condition="NOT (SERVERIP AND SERVERPORT AND SERVICENAME)" />
+      </Control>
+      <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+        <Publish Event="SpawnDialog" Value="UserExit" Condition="1" />
+      </Control>
+    </Dialog>
+
+    <Dialog Id="RB_BadInput" Width="260" Height="110" Title="RuntimeBroker Setup" NoMinimize="yes">
+      <Control Id="Text" Type="Text" X="20" Y="20" Width="220" Height="40"
+               Transparent="yes" NoPrefix="yes"
+               Text="Please enter the server IP, port and service name. The token is optional." />
+      <Control Id="OK" Type="PushButton" X="102" Y="70" Width="56" Height="17" Default="yes" Text="OK">
+        <Publish Event="EndDialog" Value="Return" Condition="1" />
+      </Control>
+    </Dialog>
+
+    <Dialog Id="RB_Verify" Width="370" Height="270" Title="RuntimeBroker Setup" NoMinimize="yes">
+      <Control Id="Title" Type="Text" X="15" Y="6" Width="340" Height="20"
+               Transparent="yes" NoPrefix="yes" Text="Ready to Install" />
+      <Control Id="Description" Type="Text" X="25" Y="30" Width="320" Height="60"
+               Transparent="yes" NoPrefix="yes"
+               Text="Click Install to install the agent service. You can change these values on every reinstall." />
+      <Control Id="Summary" Type="Text" X="25" Y="100" Width="320" Height="60"
+               Transparent="yes" NoPrefix="yes"
+               Text="[SERVERIP]:[SERVERPORT] as service [SERVICENAME]" />
+      <Control Id="Back" Type="PushButton" X="180" Y="243" Width="56" Height="17" Text="&amp;Back">
+        <Publish Event="NewDialog" Value="RB_Config" Condition="1" />
+      </Control>
+      <Control Id="Install" Type="PushButton" X="236" Y="243" Width="56" Height="17" Default="yes" Text="&amp;Install">
+        <Publish Event="EndDialog" Value="Return" Condition="1" />
+      </Control>
+      <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17" Cancel="yes" Text="Cancel">
+        <Publish Event="SpawnDialog" Value="UserExit" Condition="1" />
+      </Control>
+    </Dialog>
+
+    <InstallUISequence>
+      <Show Dialog="RB_Welcome" Before="ExecuteAction" Condition="NOT Installed" />
+    </InstallUISequence>
+    </UI>
+  </Package>
+</Wix>

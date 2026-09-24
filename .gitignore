@@ -21,14 +21,30 @@ Thumbs.db
 .DS_Store
 
 # Local config (contains tokens/URLs)
+agent.config.json
 Agent/agent.config.json
 Server/agents.json
+Server/blocked_devices.json
+Server/server.config.json
+Server/sessions.json
 
 # Android build
 AndroidApp/.gradle/
+AndroidApp/.kotlin/
 AndroidApp/app/build/
 AndroidApp/app/.cxx/
 AndroidApp/local.properties
+# Prebuilt nodejs-mobile engine (see app/libnode/README.txt — download, don't commit)
+AndroidApp/app/libnode/bin/
+AndroidApp/app/libnode/include/
+# Bundled server deps inside the APK assets (reinstall via npm)
+AndroidApp/app/src/main/assets/nodejs-project/node_modules/
+
+# Node modules (reinstall via npm)
+Server/node_modules/
+
+# WiX tool cache
+.wix/
 
 # Windows
 *.user

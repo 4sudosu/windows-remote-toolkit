@@ -1,0 +1,6 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Runtime Broker Login</title><link rel="stylesheet" href="style.css"></head>
+<body><main class="login-page"><form id="loginForm" class="tool-panel login-card"><h1>Runtime Broker</h1><p class="muted">Enter the server administrator password.</p><input id="password" class="search-input" type="password" autocomplete="current-password" required autofocus><button class="btn-primary" type="submit">Sign in</button><p id="loginError" class="muted" role="alert"></p></form></main><script>
+document.getElementById('loginForm').addEventListener('submit',async e=>{e.preventDefault();const out=document.getElementById('loginError');const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:document.getElementById('password').value})});const d=await r.json().catch(()=>({}));if(r.ok)location.replace('/');else out.textContent=d.attemptsLeft==null?(d.error||'Login failed'):`${d.error}. ${d.attemptsLeft} attempt(s) left.`});
+</script></body></html>

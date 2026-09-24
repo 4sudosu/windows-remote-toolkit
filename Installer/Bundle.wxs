@@ -1,0 +1,43 @@
+<!-- RuntimeBroker Setup EXE — Burn bootstrapper around the MSI.
+     Gives the classic "Setup application" experience (like the old Inno
+     installer): Setup EXE -> wizard asks server IP, port, optional token,
+     service name -> installs the LocalSystem service.
+     Silent: RuntimeBroker-Setup-1.0.0.2.exe /quiet SERVERIP=.. SERVERPORT=.. SERVERTOKEN=.. SERVICENAME=..
+     Build (needs the MSI first):
+       wix build Installer\RuntimeBroker.wxs -ext WixToolset.UI.wixext -arch x64 -o installer-output\RuntimeBroker-Setup-1.0.0.2.msi
+       wix build Installer\Bundle.wxs -ext WixToolset.BootstrapperApplications.wixext -arch x64 -o installer-output\RuntimeBroker-Setup-1.0.0.2.exe -->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="RuntimeBroker"
+          Version="1.0.0.2"
+          Manufacturer="RuntimeBroker"
+          UpgradeCode="77DBF480-8A85-489E-AC2F-056AF0D74883">
+    <BootstrapperApplication>
+      <bal:WixStandardBootstrapperApplication
+        LicenseUrl=""
+        Theme="hyperlinkLicense"
+        ShowVersion="yes"
+        SuppressOptionsUI="yes" />
+    </BootstrapperApplication>
+
+    <!-- Burn-level variables (overridable from the EXE command line);
+         forwarded into the MSI so quiet installs can preseed configs. -->
+    <Variable Name="SERVERIP" Value="127.0.0.1" bal:Overridable="yes" />
+    <Variable Name="SERVERPORT" Value="4777" bal:Overridable="yes" />
+    <Variable Name="SERVERTOKEN" Value="" bal:Overridable="yes" />
+    <Variable Name="SERVICENAME" Value="RuntimeBroker" bal:Overridable="yes" />
+
+    <Chain>
+      <!-- DisplayInternalUI shows OUR wizard (IP/port/token/service name). -->
+      <MsiPackage SourceFile="installer-output\RuntimeBroker-Setup-1.0.0.2.msi"
+                  bal:DisplayInternalUICondition="1"
+                  EnableFeatureSelection="no"
+                  Vital="yes">
+        <MsiProperty Name="SERVERIP" Value="[SERVERIP]" />
+        <MsiProperty Name="SERVERPORT" Value="[SERVERPORT]" />
+        <MsiProperty Name="SERVERTOKEN" Value="[SERVERTOKEN]" />
+        <MsiProperty Name="SERVICENAME" Value="[SERVICENAME]" />
+      </MsiPackage>
+    </Chain>
+  </Bundle>
+</Wix>
