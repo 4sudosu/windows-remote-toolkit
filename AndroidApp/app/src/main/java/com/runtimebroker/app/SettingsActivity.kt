@@ -33,6 +33,7 @@ class SettingsActivity : BaseActivity() {
         bindServerActions()
         bindTheme()
         bindNotifications()
+        bindGemini()
         bindContact()
     }
 
@@ -164,6 +165,21 @@ class SettingsActivity : BaseActivity() {
             else -> getString(R.string.notif_tone_default)
         }
         binding.tvToneName.text = label
+    }
+
+    // ---- Gemini AI (screenshot default prompt) --------------------------------
+    private fun bindGemini() {
+        binding.etGeminiDefault.setText(Prefs.geminiPrompt(this))
+        binding.btnSaveGemini.setOnClickListener {
+            val p = binding.etGeminiDefault.text.toString().trim()
+            if (p.isBlank()) {
+                Toast.makeText(this, R.string.gemini_prompt_required, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            Prefs.saveGeminiPrompt(this, p)
+            Toast.makeText(this, R.string.gemini_default_saved, Toast.LENGTH_SHORT).show()
+        }
+        binding.btnOpenGemini.setOnClickListener { GeminiShare.openGemini(this) }
     }
 
     // ---- Contact -----------------------------------------------------------

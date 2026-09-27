@@ -512,6 +512,35 @@
     <string name="device_locked_message">Device locked after 3 failed attempts. Tap "Check Status" to unlock.</string>
     <string name="status_unlocked">Device unlocked. You can now connect.</string>
     <string name="status_still_locked">Still locked. Admin must unlock from dashboard.</string>
+
+    <!-- Gemini AI mode (screenshot only, share-to-app, no API key) -->
+    <string name="gemini_mode_title">Choose how to open screenshots</string>
+    <string name="gemini_mode_normal">Normal Mode</string>
+    <string name="gemini_mode_normal_desc">Live viewer, Capture &amp; store, share photos — works just like before.</string>
+    <string name="gemini_mode_ai">AI Mode · Gemini</string>
+    <string name="gemini_mode_ai_desc">Capture &amp; Ask with AI, Ask Selected with AI — screenshot + prompt sent to the Gemini app.</string>
+    <string name="gemini_badge_new">NEW</string>
+    <string name="gemini_capture_ask">Capture and Ask with AI</string>
+    <string name="gemini_ask_selected">Ask Selected with AI</string>
+    <string name="gemini_ask_count">Ask (%1$d) with AI</string>
+    <string name="gemini_prompt_hint">AI prompt…</string>
+    <string name="gemini_save_default">Save Default</string>
+    <string name="gemini_open">Open Gemini</string>
+    <string name="gemini_status_ready">AI ready — capture or select photos to ask.</string>
+    <string name="gemini_status_capturing">Capturing screenshot for AI…</string>
+    <string name="gemini_status_preparing">Preparing %1$d photo(s) for AI…</string>
+    <string name="gemini_status_shared">Shared to Gemini. Prompt (also copied to clipboard):\n%1$s\nIf Gemini’s text box is empty, long-press → paste.</string>
+    <string name="gemini_status_failed">Could not reach the server.</string>
+    <string name="gemini_select_first">Select one or more album photos first, then ask AI.</string>
+    <string name="gemini_prompt_empty">Type an AI prompt first</string>
+    <string name="gemini_prompt_copied">Opened in Gemini — prompt copied, paste it if the text box is empty</string>
+    <string name="gemini_not_found">Pick Gemini to ask about this screenshot</string>
+    <string name="gemini_open_failed">Could not open AI app: %1$s</string>
+    <string name="gemini_web_fallback">Gemini app did not open — opened gemini.google.com</string>
+    <string name="gemini_settings_title">Gemini AI</string>
+    <string name="gemini_settings_desc">Default prompt pre-filled in AI mode. Screenshots open in your Gemini app.</string>
+    <string name="gemini_default_saved">Gemini default prompt saved</string>
+    <string name="gemini_prompt_required">Prompt cannot be empty</string>
 </resources>
 
 

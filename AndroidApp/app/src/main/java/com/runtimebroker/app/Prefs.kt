@@ -24,6 +24,10 @@ object Prefs {
     private const val KEY_HOST_IP = "host_ip"
     private const val KEY_HOST_PORT = "host_port"
     private const val KEY_REFRESH_SECS = "refresh_secs"
+    private const val KEY_GEMINI_PROMPT = "gemini_default_prompt"
+
+    const val DEFAULT_GEMINI_PROMPT =
+        "Analyze this screenshot and describe what you see. Highlight any issues, errors, or unusual activity."
 
     private fun sp(context: Context) =
         context.getSharedPreferences(NAME, Context.MODE_PRIVATE)
@@ -181,5 +185,14 @@ object Prefs {
 
     fun saveRefreshSecs(context: Context, secs: Int) {
         sp(context).edit().putInt(KEY_REFRESH_SECS, secs).apply()
+    }
+
+    // ---- Gemini AI (screenshot share-to-app, no API key) ------------------
+    fun geminiPrompt(context: Context): String =
+        sp(context).getString(KEY_GEMINI_PROMPT, DEFAULT_GEMINI_PROMPT)
+            ?: DEFAULT_GEMINI_PROMPT
+
+    fun saveGeminiPrompt(context: Context, prompt: String) {
+        sp(context).edit().putString(KEY_GEMINI_PROMPT, prompt).apply()
     }
 }

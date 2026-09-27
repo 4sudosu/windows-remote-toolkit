@@ -126,8 +126,10 @@ graph LR
 
 ## ✨ What's new in V2
 
-### 📱 Android App (v4.3)
+### 📱 Android App (v4.5)
 - **Temp album** — 📸 Capture and Store saves screenshots to `DCIM/RuntimeBroker`, grid view, multi-select batch share, one-tap clear
+- **Gemini AI mode (screenshots)** — Screenshot option asks Normal vs AI Mode; AI Mode shares the capture + saved prompt straight into the Gemini app (no API key), Ask Selected with AI for album photos, default prompt in Settings
+- **Two variants** — update-check build (mandatory gate) + no-update build (same package, installs over)
 - **Update gate** — mandatory update check against this repo's releases
 - **Live device list** — auto-refresh (3s/5s/10s, persisted), instant connect notifications via `/api/events`, 10 themes
 
@@ -419,9 +421,10 @@ Runtime Broker/
 |----------|------|------|---------|
 | **Windows** | `RuntimeBroker-Setup-1.0.0.2.exe` | ~47 MB | Installer (Inno wizard: IP/port/optional token/service name) |
 | **Windows** | `RuntimeBroker-1.0.0.2.exe` | ~154 MB | Portable agent (self-contained) |
-| **Android** | `RuntimeBroker4.3.apk` | ~197 MB | App v4.3 (temp album, update gate, SSE notifications) |
+| **Android** | `RuntimeBroker4.5.apk` | ~197 MB | App v4.5 (Gemini AI screenshots, temp album, update gate, SSE notifications) |
+| **Android** | `RuntimeBroker4.5-noupdate.apk` | ~197 MB | App v4.5, update gate disabled |
 
-> Current binaries ship from [WindowRemoteToolkitV2 releases](https://github.com/4sudosu/WindowRemoteToolkitV2/releases) (v4.3).
+> Current binaries ship from [WindowRemoteToolkitV2 releases](https://github.com/4sudosu/WindowRemoteToolkitV2/releases) (v4.5).
 
 👉 **[View All Releases →](https://github.com/4sudosu/windows-remote-toolkit/releases)**
 

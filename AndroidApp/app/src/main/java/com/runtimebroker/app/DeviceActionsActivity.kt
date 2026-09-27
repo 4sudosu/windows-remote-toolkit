@@ -135,8 +135,12 @@ class DeviceActionsActivity : BaseActivity() {
     }
 
     private fun openCommand(id: String) {
+        // Screenshot offers Normal vs Gemini AI mode; everything else opens directly.
+        if (id == "screenshot") {
+            showScreenshotModePicker()
+            return
+        }
         val cls = when (id) {
-            "screenshot" -> CaptureActivity::class.java
             "live_view" -> LiveScreenActivity::class.java
             "shell" -> ShellActivity::class.java
             "files" -> FileManagerActivity::class.java
@@ -153,6 +157,37 @@ class DeviceActionsActivity : BaseActivity() {
         val intent = Intent(this, cls)
         intent.putExtra(MainActivity.EXTRA_MACHINE, machineName)
         intent.putExtra(MainActivity.EXTRA_HOST, hostname)
+        startActivity(intent)
+    }
+
+    /** Screenshot-only mode picker: Normal vs Gemini AI. */
+    private fun showScreenshotModePicker() {
+        val view = layoutInflater.inflate(R.layout.dialog_mode_picker, null)
+        view.findViewById<android.widget.TextView>(R.id.tvModeDevice).text =
+            hostname.ifBlank { machineName }
+        val dialog = androidx.appcompat.app.AlertDialog.Builder(this)
+            .setView(view)
+            .create()
+        view.findViewById<android.view.View>(R.id.cardNormal).setOnClickListener {
+            dialog.dismiss()
+            openCapture(aiMode = false)
+        }
+        view.findViewById<android.view.View>(R.id.cardAi).setOnClickListener {
+            dialog.dismiss()
+            openCapture(aiMode = true)
+        }
+        view.findViewById<android.view.View>(R.id.tvModeCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialog.show()
+        dialog.window?.setBackgroundDrawableResource(R.drawable.bg_dialog)
+    }
+
+    private fun openCapture(aiMode: Boolean) {
+        val intent = Intent(this, CaptureActivity::class.java)
+        intent.putExtra(MainActivity.EXTRA_MACHINE, machineName)
+        intent.putExtra(MainActivity.EXTRA_HOST, hostname)
+        intent.putExtra(CaptureActivity.EXTRA_AI_MODE, aiMode)
         startActivity(intent)
     }
 

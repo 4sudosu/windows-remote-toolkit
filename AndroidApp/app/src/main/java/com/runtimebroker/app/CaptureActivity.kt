@@ -39,6 +39,7 @@ import java.util.TimeZone
 class CaptureActivity : BaseActivity() {
 
     companion object {
+        const val EXTRA_AI_MODE = "ai_mode"
         private const val REQ_STORAGE = 1001
         private const val ALBUM_PATH = "DCIM/RuntimeBroker"
     }
@@ -52,6 +53,8 @@ class CaptureActivity : BaseActivity() {
     private var captureJob: Job? = null
     private var refreshJob: Job? = null
     private var storing = false
+    private var aiMode = false
+    private var aiAsking = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +67,7 @@ class CaptureActivity : BaseActivity() {
         machineName = intent.getStringExtra(MainActivity.EXTRA_MACHINE).orEmpty()
         hostname = intent.getStringExtra(MainActivity.EXTRA_HOST).orEmpty()
         binding.captureTitle.text = hostname
+        aiMode = intent.getBooleanExtra(EXTRA_AI_MODE, false)
 
         if (machineName.isNotBlank()) {
             Prefs.saveLastDevice(this, machineName, hostname)
@@ -108,7 +112,9 @@ class CaptureActivity : BaseActivity() {
             override fun onNothingSelected(parent: AdapterView<*>?) {}
         }
 
-        binding.btnCapture.setOnClickListener { captureNow() }
+        binding.btnCapture.setOnClickListener {
+            if (aiMode) captureAndAskAi() else captureNow()
+        }
         binding.btnSave.setOnClickListener { saveImage() }
         binding.btnCopy.setOnClickListener { copyImage() }
         binding.btnShare.setOnClickListener { shareImage() }
@@ -116,8 +122,11 @@ class CaptureActivity : BaseActivity() {
         // ── V2 temp album (Capture and Store → DCIM/RuntimeBroker) ──
         setupAlbum()
         refreshAlbum()
+        setupAiMode()
         binding.btnCaptureStore.setOnClickListener { captureAndStore() }
-        binding.btnShareSelected.setOnClickListener { shareSelected() }
+        binding.btnShareSelected.setOnClickListener {
+            if (aiMode) askSelectedWithAi() else shareSelected()
+        }
         binding.btnClearTemp.setOnClickListener { clearTemp() }
     }
 
@@ -130,6 +139,141 @@ class CaptureActivity : BaseActivity() {
         refreshJob?.cancel()
         captureJob?.cancel()
         super.onDestroy()
+    }
+
+    // ── Gemini AI mode (screenshot share-to-app, no API key) ──────────────
+    private fun setupAiMode() {
+        binding.etAiPrompt.setText(Prefs.geminiPrompt(this))
+        if (!aiMode) {
+            binding.aiBox.visibility = View.GONE
+            return
+        }
+        binding.aiBox.visibility = View.VISIBLE
+        binding.captureTitle.text = getString(R.string.gemini_mode_ai)
+        binding.btnCapture.text = getString(R.string.gemini_capture_ask)
+        binding.btnShareSelected.text = getString(R.string.gemini_ask_selected)
+        binding.statusText.text = getString(R.string.gemini_status_ready)
+        setAiStatus(getString(R.string.gemini_status_ready))
+        binding.btnSaveAiPrompt.setOnClickListener {
+            val p = binding.etAiPrompt.text.toString().trim()
+            if (p.isBlank()) {
+                Toast.makeText(this, R.string.gemini_prompt_required, Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            Prefs.saveGeminiPrompt(this, p)
+            Toast.makeText(this, R.string.gemini_default_saved, Toast.LENGTH_SHORT).show()
+        }
+        binding.btnOpenGeminiAi.setOnClickListener { GeminiShare.openGemini(this) }
+    }
+
+    private fun currentPrompt(): String {
+        val typed = binding.etAiPrompt.text?.toString()?.trim().orEmpty()
+        return typed.ifBlank { Prefs.geminiPrompt(this) }
+    }
+
+    private fun setAiStatus(text: String) {
+        binding.tvAiResponse.text = text
+    }
+
+    /** AI mode: capture a fresh screenshot, show it, then share it + prompt to Gemini. */
+    private fun captureAndAskAi() {
+        if (machineName.isBlank() || aiAsking) return
+        val prompt = currentPrompt()
+        if (prompt.isBlank()) {
+            binding.statusText.text = getString(R.string.gemini_prompt_empty)
+            return
+        }
+        aiAsking = true
+        captureJob?.cancel()
+        captureJob = lifecycleScope.launch {
+            try {
+                binding.btnCapture.isEnabled = false
+                binding.statusText.text = getString(R.string.capturing)
+                setAiStatus(getString(R.string.gemini_status_capturing))
+                val result = RuntimeBrokerApi.capture(
+                    Prefs.serverUrl(this@CaptureActivity),
+                    machineName,
+                    Prefs.password(this@CaptureActivity)
+                )
+                if (!result.success || result.image.isNullOrBlank()) {
+                    val err = result.error ?: "unknown error"
+                    binding.statusText.text = getString(R.string.capture_failed, err)
+                    setAiStatus(getString(R.string.capture_failed, err))
+                    return@launch
+                }
+                val bytes = try {
+                    Base64.decode(result.image, Base64.DEFAULT)
+                } catch (e: Exception) {
+                    binding.statusText.text = getString(R.string.capture_failed, "invalid image")
+                    setAiStatus(getString(R.string.capture_failed, "invalid image"))
+                    return@launch
+                }
+                val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+                if (bmp == null) {
+                    binding.statusText.text = getString(R.string.capture_failed, "invalid image")
+                    setAiStatus(getString(R.string.capture_failed, "invalid image"))
+                    return@launch
+                }
+                currentBitmap = bmp
+                binding.captureImage.setImageBitmap(bmp)
+                binding.statusText.text = getString(
+                    R.string.capture_ok,
+                    result.at?.let { formatTime(it) } ?: "now"
+                )
+                val uri = GeminiShare.cacheImageUri(
+                    this@CaptureActivity, bytes, "rb_${safeMachine()}"
+                )
+                val ok = GeminiShare.shareSingle(this@CaptureActivity, uri, prompt)
+                if (ok) {
+                    setAiStatus(getString(R.string.gemini_status_shared, prompt))
+                }
+            } finally {
+                binding.btnCapture.isEnabled = true
+                aiAsking = false
+            }
+        }
+    }
+
+    /** AI mode: share selected album photos + prompt to Gemini. */
+    private fun askSelectedWithAi() {
+        if (aiAsking) return
+        val items = albumAdapter.selectedItems()
+        if (items.isEmpty()) {
+            binding.statusText.text = getString(R.string.gemini_select_first)
+            setAiStatus(getString(R.string.gemini_select_first))
+            return
+        }
+        val prompt = currentPrompt()
+        if (prompt.isBlank()) {
+            binding.statusText.text = getString(R.string.gemini_prompt_empty)
+            return
+        }
+        aiAsking = true
+        binding.statusText.text = getString(R.string.gemini_status_preparing, items.size)
+        setAiStatus(getString(R.string.gemini_status_preparing, items.size))
+        lifecycleScope.launch {
+            try {
+                val uris = items.mapNotNull {
+                    GeminiShare.copyToCacheUri(
+                        this@CaptureActivity, it.uri, "rb_${safeMachine()}"
+                    )
+                }
+                if (uris.isEmpty()) {
+                    binding.statusText.text = getString(R.string.album_store_failed)
+                    return@launch
+                }
+                val ok = if (uris.size == 1) {
+                    GeminiShare.shareSingle(this@CaptureActivity, uris[0], prompt)
+                } else {
+                    GeminiShare.shareMultiple(this@CaptureActivity, ArrayList(uris), prompt)
+                }
+                if (ok) {
+                    setAiStatus(getString(R.string.gemini_status_shared, prompt))
+                }
+            } finally {
+                aiAsking = false
+            }
+        }
     }
 
     private fun autoRefreshSeconds(): Int = when (binding.refreshSpinner.selectedItemPosition) {
@@ -315,10 +459,13 @@ class CaptureActivity : BaseActivity() {
 
     private fun setupAlbum() {
         albumAdapter = TempAlbumAdapter(emptyList()) { count ->
-            binding.btnShareSelected.text = if (count > 0)
-                getString(R.string.album_share_count, count)
-            else
-                getString(R.string.album_share_selected)
+            binding.btnShareSelected.text = if (aiMode) {
+                if (count > 0) getString(R.string.gemini_ask_count, count)
+                else getString(R.string.gemini_ask_selected)
+            } else {
+                if (count > 0) getString(R.string.album_share_count, count)
+                else getString(R.string.album_share_selected)
+            }
         }
         binding.rvTempAlbum.layoutManager = GridLayoutManager(this, 3)
         binding.rvTempAlbum.setHasFixedSize(true)
@@ -364,7 +511,9 @@ class CaptureActivity : BaseActivity() {
         binding.tvAlbumTitle.text = getString(R.string.album_title, items.size)
         binding.tvAlbumEmpty.visibility = if (items.isEmpty()) View.VISIBLE else View.GONE
         binding.rvTempAlbum.visibility = if (items.isEmpty()) View.GONE else View.VISIBLE
-        binding.btnShareSelected.text = getString(R.string.album_share_selected)
+        binding.btnShareSelected.text = getString(
+            if (aiMode) R.string.gemini_ask_selected else R.string.album_share_selected
+        )
     }
 
     private fun captureAndStore() {

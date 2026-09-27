@@ -58,7 +58,7 @@ Repos (all under GitHub user `4sudosu`):
 │   │                         # Heartbeat: ws ping only (no app-level keepalive handling).
 │   ├── package.json          # express, ws (type: module)
 │   └── dashboard/            # Web UI: index.html, app.js, login.html, style.css
-├── AndroidApp/               # Kotlin app, package com.runtimebroker.app, v4.3 (code 11)
+├── AndroidApp/               # Kotlin app, package com.runtimebroker.app, v4.5 (code 13)
 │   ├── build.gradle.kts      # compileSdk/target 34, minSdk 24, Java/Kotlin 17, viewBinding + buildConfig
 │   │                         # build types: release, debug, noupdate (UPDATE_GATE_ENABLED=false)
 │   ├── gradle/libs.versions.toml  # AGP 8.5.2, Kotlin 2.0.20, okhttp 4.12.0, coroutines, recyclerview, photoview
@@ -72,14 +72,17 @@ Repos (all under GitHub user `4sudosu`):
 │       │   ├── UpdateActivity.kt     # DownloadManager APK install, back blocked
 │       │   ├── MainActivity.kt       # device list polling (Prefs.refreshSecs 3/5/10s), SSE start
 │       │   ├── AgentEventService.kt  # foreground SSE /api/events → connect notifications
-│       │   ├── CaptureActivity.kt    # screenshot + temp album (DCIM/RuntimeBroker, grid, batch share, clear)
+│   │   ├── CaptureActivity.kt    # screenshot + AI mode (Normal/Gemini picker) + temp album (DCIM/RuntimeBroker, grid, batch share, clear)
+│   │   │                         # AI mode: Capture and Ask with AI, Ask Selected with AI (share-to-Gemini, no API key)
 │       │   ├── TempAlbumAdapter.kt   # album grid adapter (AlbumItem)
 │       │   ├── LiveScreenActivity.kt # WS live frames + touch forwarding
 │       │   ├── ConnectActivity.kt    # server URL + password, device-block states
 │       │   ├── *_*Activity.kt        # Shell/Processes/Services/Files/Camera/Mic/Audio/inputs/Media/Settings…
-│       │   ├── api/RuntimeBrokerApi.kt  # all HTTP (X-Admin-Password), live WS, timeoutSec scaling
+│   │   ├── DeviceActionsActivity.kt  # per-device command list; Screenshot opens Normal/Gemini picker
+│   │   ├── api/RuntimeBrokerApi.kt  # all HTTP (X-Admin-Password), live WS, timeoutSec scaling
 │       │   ├── api/Models.kt         # AgentInfo, CaptureResult, CommandResult(data: Any?)
-│       │   ├── Prefs.kt              # SharedPreferences incl. refresh_secs
+│   │   ├── Prefs.kt              # SharedPreferences incl. refresh_secs + gemini_default_prompt
+│   │   ├── GeminiShare.kt        # share-to-Gemini-app helper (explicit Bard entry point, clipboard prompt fallback, manifest <queries>)
 │       │   ├── Notifications.kt      # channels + postNewAgent + typing progress
 │       │   ├── NodeServerService.kt  # embedded phone server (nodejs-mobile); its agent-WS
 │       │   │                         # token STRICTLY equals the admin password (4001 otherwise)
@@ -175,8 +178,8 @@ $env:ADMIN_PASSWORD='...'; $env:PORT='3001'; node server.js
 #   1. AndroidApp/local.properties: sdk.dir=<SDK>  (gitignored)
 #   2. npm install in app/src/main/assets/nodejs-project/
 #   3. libnode .so per app/libnode/README.txt (or stub build without hosting)
-.\gradlew.bat assembleDebug        # → app/build/outputs/apk/debug/RuntimeBroker4.3.apk
-.\gradlew.bat assembleNoupdate     # → .../noupdate/RuntimeBroker4.3-noupdate.apk (gate OFF)
+.\gradlew.bat assembleDebug        # → app/build/outputs/apk/debug/RuntimeBroker4.5.apk
+.\gradlew.bat assembleNoupdate     # → .../noupdate/RuntimeBroker4.5-noupdate.apk (gate OFF)
 adb install -r <apk>               # release-signed↔debug-signed clash needs `adb uninstall` first
 ```
 
@@ -200,7 +203,7 @@ adb install -r <apk>               # release-signed↔debug-signed clash needs `
 - Secrets: NEVER commit `agent.config.json`, `local.properties`, `sessions.json`,
   `blocked_devices.json`, `agents.json`, keystores, passwords (all gitignored).
 - Versioning: agent `Agent/RuntimeBroker.csproj` (1.0.0.2), app
-  `AndroidApp/app/build.gradle.kts` (4.3/code 11), server `SERVER_VERSION` in
+  `AndroidApp/app/build.gradle.kts` (4.5/code 13), server `SERVER_VERSION` in
   `Server/server.js` (2.2.0). Update gate compares app versionName vs releases/latest.
 - Releases: public binaries → `WindowRemoteToolkitV2` v-tags; source repos hold source only.
 

@@ -169,6 +169,67 @@
             android:scrollbars="vertical" />
     </LinearLayout>
 
+    <LinearLayout
+        android:id="@+id/aiBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="12dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/bg_bar_glass"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:visibility="gone">
+
+        <EditText
+            android:id="@+id/etAiPrompt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top|start"
+            android:hint="@string/gemini_prompt_hint"
+            android:inputType="textMultiLine"
+            android:minLines="2"
+            android:textColor="?attr/colorOnSurface"
+            android:textColorHint="@color/offline_gray"
+            android:textSize="13sp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnSaveAiPrompt"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/gemini_save_default"
+                android:textSize="12sp" />
+
+            <Button
+                android:id="@+id/btnOpenGeminiAi"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/gemini_open"
+                android:textSize="12sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvAiResponse"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:maxHeight="120dp"
+            android:scrollbars="vertical"
+            android:text="@string/gemini_status_ready"
+            android:textColor="@color/offline_gray"
+            android:textSize="12sp" />
+    </LinearLayout>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
