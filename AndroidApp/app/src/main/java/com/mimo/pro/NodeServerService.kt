@@ -35,6 +35,7 @@ class NodeServerService : Service() {
         const val DEFAULT_HOST = "0.0.0.0"
         const val DEFAULT_PORT = 4777
         @Volatile private var started = false
+        @Volatile private var lifetimeRunning = false
 
         /** Bind address for the embedded server; blank falls back to [DEFAULT_HOST]. */
         fun configure(context: Context, host: String, port: Int) {
@@ -46,6 +47,7 @@ class NodeServerService : Service() {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(PORT_KEY, DEFAULT_PORT)
 
         fun start(context: Context) {
+            lifetimeRunning = true
             val intent = Intent(context, NodeServerService::class.java)
             ContextCompat.startForegroundService(context, intent)
         }
@@ -54,11 +56,7 @@ class NodeServerService : Service() {
             context.stopService(Intent(context, NodeServerService::class.java))
         }
 
-        fun isRunning(context: Context): Boolean {
-            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-            return am.getRunningServices(Int.MAX_VALUE)
-                .any { it.service.className == NodeServerService::class.java.name }
-        }
+        fun isRunning(context: Context): Boolean = lifetimeRunning
 
         /** Local IPv4 addresses a PC can reach this device on (LAN WiFi first). */
         fun localIps(context: Context): List<String> {
@@ -94,6 +92,11 @@ class NodeServerService : Service() {
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        lifetimeRunning = true
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val sp = getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -152,6 +155,14 @@ class NodeServerService : Service() {
         }
     }
 
+    override fun onDestroy() {
+        lifetimeRunning = false
+        super.onDestroy()
+    }
+
+    // shortcut: node::Start cannot be stopped in-process; "Stop Local Server" only kills the
+    // foreground service notice, the port stays bound until the app process dies, upgrade when
+    // nodejs-mobile exposes an API for stopping the engine
     private fun startNodeEngine(nodeDir: File) {
         val scriptPath = File(nodeDir, "server.js").absolutePath
         try {

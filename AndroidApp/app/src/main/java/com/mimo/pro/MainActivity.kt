@@ -62,7 +62,6 @@ class MainActivity : BaseActivity() {
             lifecycleScope.launch { refreshAgents() }
         }
         binding.btnOpenServer.setOnClickListener { openRunningServer() }
-        binding.btnRunServer.setOnClickListener { toggleServer() }
 
         binding.deviceSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, a: Int, b: Int, c: Int) {}
@@ -115,7 +114,6 @@ class MainActivity : BaseActivity() {
             welcomeShown = true
             showWelcomeDialog()
         }
-        updateServerState()
     }
 
     /** Opens the running server's web dashboard inside the app (auto-signed-in). */
@@ -126,32 +124,6 @@ class MainActivity : BaseActivity() {
             return
         }
         startActivity(Intent(this, DashboardActivity::class.java))
-    }
-
-    private fun toggleServer() {
-        if (NodeServerService.isRunning(this)) {
-            NodeServerService.stop(this)
-            Toast.makeText(this, R.string.server_stopped, Toast.LENGTH_SHORT).show()
-        } else {
-            NodeServerService.configure(this, NodeServerService.DEFAULT_HOST, NodeServerService.DEFAULT_PORT)
-            NodeServerService.start(this)
-            val ip = NodeServerService.localIps(this).firstOrNull()
-            Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:${NodeServerService.currentPort(this)}"), Toast.LENGTH_LONG).show()
-        }
-        updateServerState()
-    }
-
-    /** Shows the embedded-server state line under the action buttons. */
-    private fun updateServerState() {
-        val ip = NodeServerService.localIps(this).firstOrNull()
-        if (NodeServerService.isRunning(this) && ip != null) {
-            binding.tvServerState.visibility = View.VISIBLE
-            binding.tvServerState.text = getString(R.string.server_state_running, "http://$ip:${NodeServerService.currentPort(this)}")
-            binding.btnRunServer.text = getString(R.string.stop_server)
-        } else {
-            binding.tvServerState.visibility = View.GONE
-            binding.btnRunServer.text = getString(R.string.run_server_all_interfaces)
-        }
     }
 
     private fun openDeviceActions(agent: AgentInfo) {

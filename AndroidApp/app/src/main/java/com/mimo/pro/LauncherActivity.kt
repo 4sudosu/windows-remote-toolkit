@@ -19,6 +19,35 @@ class LauncherActivity : BaseActivity() {
             startActivity(Intent(this, ConnectActivity::class.java))
         }
         findViewById<Button>(R.id.btnOpenServer).setOnClickListener { openRunningServer() }
+        findViewById<Button>(R.id.btnRunServer).setOnClickListener { toggleServer() }
+    }
+
+    private fun toggleServer() {
+        if (NodeServerService.isRunning(this)) {
+            NodeServerService.stop(this)
+            Toast.makeText(this, R.string.server_stopped, Toast.LENGTH_SHORT).show()
+        } else {
+            NodeServerService.configure(this, NodeServerService.DEFAULT_HOST, NodeServerService.DEFAULT_PORT)
+            NodeServerService.start(this)
+            val ip = NodeServerService.localIps(this).firstOrNull()
+            Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:${NodeServerService.currentPort(this)}"), Toast.LENGTH_LONG).show()
+        }
+        updateServerState()
+    }
+
+    /** Shows the embedded-server state under the action buttons. */
+    private fun updateServerState() {
+        val ip = NodeServerService.localIps(this).firstOrNull()
+        val state = findViewById<TextView>(R.id.tvServerState)
+        val run = findViewById<Button>(R.id.btnRunServer)
+        if (NodeServerService.isRunning(this) && ip != null) {
+            state.visibility = TextView.VISIBLE
+            state.text = getString(R.string.server_state_running, "http://$ip:${NodeServerService.currentPort(this)}")
+            run.text = getString(R.string.stop_server)
+        } else {
+            state.visibility = TextView.GONE
+            run.text = getString(R.string.run_server_all_interfaces)
+        }
     }
 
     /** Opens the running server's web dashboard inside the app (auto-signed-in). */
@@ -34,6 +63,7 @@ class LauncherActivity : BaseActivity() {
     override fun onResume() {
         super.onResume()
         updateStatus()
+        updateServerState()
     }
 
     private fun updateStatus() {

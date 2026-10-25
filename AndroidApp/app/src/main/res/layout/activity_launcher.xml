@@ -63,10 +63,22 @@
             android:textColor="@color/on_surface" />
 
         <Button
-            android:id="@+id/btnConnect"
+            android:id="@+id/btnOpenServer"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="36dp"
+            android:background="@drawable/bg_btn_bordered"
+            android:letterSpacing="0.01"
+            android:text="@string/open_server"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="@color/white" />
+
+        <Button
+            android:id="@+id/btnConnect"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
             android:background="@drawable/bg_btn_primary"
             android:letterSpacing="0.01"
             android:text="@string/launcher_connect"
@@ -83,14 +95,24 @@
             android:textSize="12sp"
             android:textColor="#64748B" />
 
+        <TextView
+            android:id="@+id/tvServerState"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:textSize="12sp"
+            android:textColor="@color/on_surface"
+            android:visibility="gone" />
+
         <Button
-            android:id="@+id/btnOpenServer"
+            android:id="@+id/btnRunServer"
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:layout_marginTop="10dp"
             android:background="@drawable/bg_btn_bordered"
             android:letterSpacing="0.01"
-            android:text="@string/open_server"
+            android:text="@string/run_server_all_interfaces"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/white" />

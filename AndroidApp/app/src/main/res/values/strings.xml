@@ -228,8 +228,9 @@
  <string name="retry">Retry</string>
  <string name="open_server">Open Running Server</string>
  <string name="open_server_none">Connect to a server first</string>
-    <string name="run_server_all_interfaces">Run Server on all Network Interfaces</string>
-    <string name="stop_server">Stop Server</string>
+    <string name="run_server_all_interfaces">Run Local Server (On all Interfaces)</string>
+    <string name="connect_server">Connect to a Server</string>
+    <string name="stop_server">Stop Local Server</string>
     <string name="server_state_running">Mimo server running at %1$s</string>
     <string name="server_started">Starting server on all network interfaces… PC connects to %1$s</string>
     <string name="server_stopped">Embedded server stopped</string>
@@ -253,7 +254,7 @@
  <string name="update_available">Update available</string>
  <string name="cookies_save">Save to Clipboard</string>
  <string name="launcher_subtitle">Remote Control</string>
- <string name="launcher_connect">Connect to Server</string>
+ <string name="launcher_connect">Connect to a Server</string>
  <string name="password_required">Password is required</string>
  <string name="cookies_secure">Secure: %1$s</string>
  <string name="cookie_expires">Expires</string>
