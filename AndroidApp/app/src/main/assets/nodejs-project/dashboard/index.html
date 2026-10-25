@@ -54,6 +54,19 @@
           <button class="action-card" onclick="openLive(true)"><span class="action-icon">➤</span><strong>Cursor Control</strong><small>Move and click the remote mouse</small></button>
         </div>
 
+        <div class="action-grid" style="margin-top:10px">
+          <button class="action-card" onclick="toolShell()"><span class="action-icon">$</span><strong>Terminal</strong><small>Run shell commands</small></button>
+          <button class="action-card" onclick="toolProcesses()"><span class="action-icon">⋮</span><strong>Processes</strong><small>List and kill processes</small></button>
+          <button class="action-card" onclick="toolServices()"><span class="action-icon">⚙</span><strong>Services</strong><small>Start / stop / restart</small></button>
+          <button class="action-card" onclick="toolFiles()"><span class="action-icon">▤</span><strong>Files</strong><small>Browse, upload, download</small></button>
+        </div>
+        <div class="action-grid" style="margin-top:10px">
+          <button class="action-card" onclick="toolRotate()"><span class="action-icon">⟳</span><strong>Rotate Screen</strong><small>0 / 90 / 180 / 270</small></button>
+          <button class="action-card" onclick="toolCamera()"><span class="action-icon">◉</span><strong>Camera</strong><small>Photo and video from PC webcam</small></button>
+          <button class="action-card" onclick="toolMic()"><span class="action-icon">♪</span><strong>Mic Record</strong><small>Record the PC microphone</small></button>
+          <button class="action-card" onclick="toolAudio()"><span class="action-icon">▶</span><strong>Play Audio</strong><small>Play a sound on the PC</small></button>
+        </div>
+
         <div id="toolPanel" class="tool-panel" style="display:none;">
           <div class="panel-head"><h2>Input</h2><button class="icon-button" onclick="clearConsole()" title="Clear output">⌫</button></div>
           <div class="console-grid">
@@ -63,6 +76,7 @@
             <button class="btn-primary" onclick="sendParagraph()">Start</button>
           </div>
           <div class="console-actions"><button class="btn-muted" onclick="stopTyping()">Stop Typing</button><button class="btn-danger" onclick="stopAll()">Stop Automation</button></div>
+          <div id="toolBar" class="console-grid" style="display:none"></div>
           <pre id="consoleOutput" class="console-output"></pre>
         </div>
 

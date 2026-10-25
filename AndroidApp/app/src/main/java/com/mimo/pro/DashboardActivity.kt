@@ -114,6 +114,14 @@ class DashboardActivity : BaseActivity() {
         val agents = RuntimeBrokerApi.agents(base, pwd, "")
         runOnUiThread {
             binding.refreshLayout.isRefreshing = false
+            // Show exactly which server this dashboard talks to (IP and port).
+            try {
+                val u = java.net.URI(base)
+                binding.serverAddrText.text =
+                    "${u.host}:${if (u.port > 0) u.port else if (u.scheme == "https") 443 else 80}"
+            } catch (_: Exception) {
+                binding.serverAddrText.text = base
+            }
             if (agents == null) {
                 binding.statusText.text = getString(R.string.status_invalid)
                 adapter.submit(emptyList())

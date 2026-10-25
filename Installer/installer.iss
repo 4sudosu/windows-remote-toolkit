@@ -39,6 +39,9 @@ SolidCompression=yes
 WizardStyle=modern
 PrivilegesRequired=admin
 ArchitecturesInstallIn64BitMode=x64compatible
+; Uninstaller exe stays in the install folder, but the app is NOT registered
+; in Windows "Installed apps" (hidden like a portable tool).
+CreateUninstallRegKey=no
 MinVersion=10.0
 CloseApplications=yes
 UninstallDisplayName={#MyAppName}
