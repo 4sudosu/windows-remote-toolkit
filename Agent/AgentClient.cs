@@ -405,7 +405,15 @@ public class AgentClient
                 await Result(taskId, false, "", null, error, 1);
                 return;
             }
-            await Result(taskId, true, Convert.ToBase64String(png), null, "", 0);
+            // Real cursor position as fractions of the captured screen so
+            // clients can draw the actual cursor (GDI capture excludes it).
+            // A service can't read the cursor, so fall back to a one-shot read
+            // in the user's interactive session.
+            var cf = ScreenCapture.CursorFraction();
+            float? cx = cf?.Cx, cy = cf?.Cy;
+            if (cf == null) { var r = PowerShellRunner.RunInteractiveCursor(); cx = r.Cx; cy = r.Cy; }
+            object? data = cx is not null && cy is not null ? new { cx, cy } : null;
+            await Result(taskId, true, Convert.ToBase64String(png), data, "", 0);
         }
         catch (Exception ex)
         {

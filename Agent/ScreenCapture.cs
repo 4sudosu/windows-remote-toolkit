@@ -13,13 +13,19 @@ namespace RuntimeBroker;
 /// </summary>
 internal static class ScreenCapture
 {
-    public static int CaptureToFile(string outFile, string format = "png", int quality = 80, int maxWidth = 0)
+    public static int CaptureToFile(string outFile, string format = "png", int quality = 80, int maxWidth = 0, string? cursorFile = null)
     {
         try
         {
             var bytes = CaptureBytes(format, quality, maxWidth);
             if (bytes == null) return 2;
             File.WriteAllText(outFile, Convert.ToBase64String(bytes));
+            // Interactive-session runs can read the real cursor; the service cannot.
+            if (cursorFile != null)
+            {
+                var cf = CursorFraction();
+                File.WriteAllText(cursorFile, cf == null ? "ERR" : $"{cf.Value.Cx:0.####},{cf.Value.Cy:0.####}");
+            }
             return 0;
         }
         catch (Exception ex)
@@ -120,4 +126,29 @@ internal static class ScreenCapture
 
     [DllImport("user32.dll")]
     private static extern bool SetProcessDPIAware();
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT { public int X; public int Y; }
+
+    [DllImport("user32.dll")]
+    private static extern bool GetCursorPos(out POINT p);
+
+    /// <summary>
+    /// Real cursor position as a fraction of the virtual screen — the same
+    /// area a capture covers. Clients overlay the cursor arrow from this
+    /// because GDI captures exclude the cursor.
+    /// </summary>
+    public static (float Cx, float Cy)? CursorFraction()
+    {
+        try
+        {
+            var rect = PhysicalVirtualScreen();
+            if (rect.Width <= 0 || rect.Height <= 0 || !GetCursorPos(out var p)) return null;
+            var cx = (float)(p.X - rect.Left) / rect.Width;
+            var cy = (float)(p.Y - rect.Top) / rect.Height;
+            if (cx < 0f || cx > 1f || cy < 0f || cy > 1f) return null;
+            return (cx, cy);
+        }
+        catch { return null; }
+    }
 }

@@ -119,7 +119,11 @@ object RuntimeBrokerApi {
                 try {
                     val obj = JSONObject(text)
                     when (obj.optString("type")) {
-                        "frame" -> listener.onFrame(obj.optString("image"))
+                        "frame" -> {
+                            listener.onFrame(obj.optString("image"))
+                            val c = obj.optJSONObject("cursor")
+                            if (c != null) listener.onCursor(c.optDouble("cx", -1.0).toFloat(), c.optDouble("cy", -1.0).toFloat())
+                        }
                         "error" -> listener.onError(obj.optString("error").ifBlank { "Stream error" })
                     }
                 } catch (e: Exception) {

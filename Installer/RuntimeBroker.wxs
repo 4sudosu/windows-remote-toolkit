@@ -8,7 +8,7 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
   <Package Name="Mimo Pro"
            Manufacturer="Mimo Pro"
-           Version="1.0.0.4"
+           Version="1.0.0.5"
            UpgradeCode="9B3EDC29-C36D-4CD0-B91C-5C909063EB58"
            Scope="perMachine">
 

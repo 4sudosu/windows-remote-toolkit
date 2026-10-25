@@ -5,7 +5,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.os.Bundle
 import android.util.Base64
-import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
@@ -16,7 +15,6 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import okhttp3.WebSocket
 import org.json.JSONObject
-import kotlin.math.abs
 import kotlin.math.min
 
 class ScreenControlActivity : BaseActivity() {
@@ -35,10 +33,11 @@ class ScreenControlActivity : BaseActivity() {
     private var remoteY = -1f
     private var downX = 0f
     private var downY = 0f
-    private var downTotal = 0f
     private var lastMoveMs = 0L
 
-    private lateinit var gestureDetector: GestureDetector
+    private var zoomScale = 1f
+    private var panX = 0f
+    private var panY = 0f
     private val matrix = Matrix()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,32 +51,55 @@ class ScreenControlActivity : BaseActivity() {
         machineName = intent.getStringExtra(MainActivity.EXTRA_MACHINE).orEmpty()
         supportActionBar?.title = getString(R.string.screen_control_title)
 
-        gestureDetector = GestureDetector(this, object : GestureDetector.SimpleOnGestureListener() {
-            override fun onDoubleTap(e: MotionEvent): Boolean {
-                // Double tap = left click
-                val (bx, by) = viewToBitmap(e.x, e.y) ?: return false
-                remoteX = bx
-                remoteY = by
-                sendMouse("left")
-                showPointer()
-                return true
-            }
-
-            override fun onLongPress(e: MotionEvent) {
-                // Hold = right click (move to the held position first)
-                val k = viewToBitmap(e.x, e.y)
-                if (k != null) {
-                    remoteX = k.first
-                    remoteY = k.second
-                    sendMouse("move")
-                }
-                sendMouse("right")
-            }
-        })
-
+        // The preview is view-only: drag pans while zoomed (zoom via buttons).
+        // Cursor control moved to the trackpad below; the arrow follows the
+        // agent-reported real cursor position, not our estimate.
         binding.liveImage.setOnTouchListener { _, event ->
-            gestureDetector.onTouchEvent(event)
-            handleTouch(event)
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                }
+                MotionEvent.ACTION_MOVE -> if (zoomScale > 1f && bitmapW != 0) {
+                    panX += event.x - downX
+                    panY += event.y - downY
+                    downX = event.x
+                    downY = event.y
+                    updateImageMatrix()
+                    showPointer()
+                }
+            }
+            true
+        }
+
+        // Virtual trackpad: drag = relative cursor movement, pad full width ≈ screen width
+        binding.trackpad.setOnTouchListener { pad, event ->
+            if (!connected || bitmapW == 0 || bitmapH == 0) return@setOnTouchListener true
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    downX = event.x
+                    downY = event.y
+                    if (remoteX < 0 || remoteY < 0) {
+                        remoteX = bitmapW / 2f
+                        remoteY = bitmapH / 2f
+                    }
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val scale = bitmapW / pad.width.coerceAtLeast(1).toFloat()
+                    val dx = (event.x - downX) * scale
+                    val dy = (event.y - downY) * scale
+                    downX = event.x
+                    downY = event.y
+                    remoteX = (remoteX + dx).coerceIn(0f, bitmapW - 1f)
+                    remoteY = (remoteY + dy).coerceIn(0f, bitmapH - 1f)
+                    val now = System.currentTimeMillis()
+                    if (now - lastMoveMs >= 40) {
+                        lastMoveMs = now
+                        sendMouse("move")
+                    }
+                    showPointer()
+                }
+            }
             true
         }
 
@@ -87,6 +109,8 @@ class ScreenControlActivity : BaseActivity() {
         binding.btnWheelUp.setOnClickListener { sendMouse("wheel", delta = 120) }
         binding.btnWheelDown.setOnClickListener { sendMouse("wheel", delta = -120) }
         binding.btnRotateLocal.setOnClickListener { rotateLocalView() }
+        binding.btnZoomIn.setOnClickListener { zoom(1.3f) }
+        binding.btnZoomOut.setOnClickListener { zoom(1f / 1.3f) }
 
         // Cursor targets bitmap pixels, so the image mapping must be matrix-driven.
         binding.liveImage.scaleType = android.widget.ImageView.ScaleType.MATRIX
@@ -103,6 +127,15 @@ class ScreenControlActivity : BaseActivity() {
         binding.statusText.text = getString(R.string.live_connecting)
         ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 800,
             object : com.mimo.pro.api.LiveListener {
+                override fun onCursor(cx: Float, cy: Float) {
+                    // Agent-reported real cursor position (fractions of the
+                    // frame) — exact, unlike the trackpad movement estimate.
+                    if (cx < 0 || cy < 0 || bitmapW == 0) return
+                    remoteX = cx * bitmapW
+                    remoteY = cy * bitmapH
+                    runOnUiThread { showPointer() }
+                }
+
                 override fun onConnected() {
                     connected = true
                     runOnUiThread { binding.statusText.text = getString(R.string.live_connected) }
@@ -116,7 +149,7 @@ class ScreenControlActivity : BaseActivity() {
                         BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                         val maxSide = 1600
                         var sample = 1
-                        while (max(bounds.outWidth, bounds.outHeight) / sample > maxSide) sample *= 2
+                        while (maxOf(bounds.outWidth, bounds.outHeight) / sample > maxSide) sample *= 2
                         opts.inSampleSize = sample
                         val bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.size, opts)
                         if (bmp != null) {
@@ -156,7 +189,13 @@ class ScreenControlActivity : BaseActivity() {
         val rotated = localRotateDegrees == 90 || localRotateDegrees == 270
         val bmpW = (if (rotated) bmp.height else bmp.width).toFloat()
         val bmpH = (if (rotated) bmp.width else bmp.height).toFloat()
-        val s = min(viewWidth / bmpW, viewHeight / bmpH)
+        val s = min(viewWidth / bmpW, viewHeight / bmpH) * zoomScale
+
+        // Clamp pan so the zoomed image can't be dragged fully off screen
+        val dispW = bmpW * s
+        val dispH = bmpH * s
+        panX = clampPan(panX, dispW, viewWidth)
+        panY = clampPan(panY, dispH, viewHeight)
 
         matrix.reset()
         // 1. Move bitmap center to origin
@@ -165,61 +204,17 @@ class ScreenControlActivity : BaseActivity() {
         if (localRotateDegrees != 0) {
             matrix.postRotate(localRotateDegrees.toFloat())
         }
-        // 3. Scale, 4. Place at view center
+        // 3. Scale (fit + user zoom), 4. Place at view center with pan
         matrix.postScale(s, s)
-        matrix.postTranslate(viewWidth / 2f, viewHeight / 2f)
+        matrix.postTranslate(viewWidth / 2f + panX, viewHeight / 2f + panY)
 
         binding.liveImage.setImageMatrix(matrix)
         binding.liveImage.setImageBitmap(bmp)
     }
 
-    private fun handleTouch(event: MotionEvent): Boolean {
-        if (!connected || bitmapW == 0 || bitmapH == 0) return true
-        val (vx, vy) = viewToBitmap(event.x, event.y) ?: return true
-        when (event.actionMasked) {
-            MotionEvent.ACTION_DOWN -> {
-                downX = vx
-                downY = vy
-                downTotal = 0f
-                remoteX = vx
-                remoteY = vy
-                sendMouse("move")
-            }
-            MotionEvent.ACTION_MOVE -> {
-                val dx = vx - downX
-                val dy = vy - downY
-                downTotal += abs(dx) + abs(dy)
-                remoteX = vx
-                remoteY = vy
-                val now = System.currentTimeMillis()
-                if (now - lastMoveMs > 50) {
-                    lastMoveMs = now
-                    sendMouse("move")
-                }
-                showPointer()
-            }
-            MotionEvent.ACTION_UP -> {
-                // Single tap intentionally does NOT click — double tap = left click,
-                // hold = right click (see GestureDetector above).
-                showPointer()
-            }
-        }
-        return true
-    }
-
-    /** Maps a touch point on the ImageView to a remote (bitmap) coordinate. */
-    private fun viewToBitmap(vx: Float, vy: Float): Pair<Float, Float>? {
-        val view = binding.liveImage
-        if (view.width <= 0 || view.height <= 0) return null
-        // Inverse matrix to map view coordinates to bitmap coordinates
-        val inverseMatrix = Matrix()
-        if (!matrix.invert(inverseMatrix)) return null
-        val pts = floatArrayOf(vx, vy)
-        inverseMatrix.mapPoints(pts)
-        val bx = pts[0]
-        val by = pts[1]
-        if (bx < 0 || by < 0 || bx >= bitmapW || by >= bitmapH) return null
-        return bx to by
+    private fun clampPan(pan: Float, disp: Float, view: Float): Float {
+        if (disp <= view) return 0f
+        return pan.coerceIn((view - disp) / 2f, (disp - view) / 2f)
     }
 
     private fun showPointer() {
@@ -229,8 +224,8 @@ class ScreenControlActivity : BaseActivity() {
         if (!matrix.invert(inverseMatrix)) return
         val pts = floatArrayOf(remoteX, remoteY)
         matrix.mapPoints(pts)
-        binding.pointerLayer.x = pts[0] - 9f
-        binding.pointerLayer.y = pts[1] - 9f
+        binding.pointerLayer.x = pts[0] - 12f
+        binding.pointerLayer.y = pts[1] - 12f
         binding.pointerLayer.visibility = View.VISIBLE
     }
 
@@ -256,12 +251,16 @@ class ScreenControlActivity : BaseActivity() {
         updateImageMatrix()
     }
 
+    private fun zoom(factor: Float) {
+        zoomScale = (zoomScale * factor).coerceIn(1f, 4f)
+        if (zoomScale <= 1f) { panX = 0f; panY = 0f }
+        updateImageMatrix()
+    }
+
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) updateImageMatrix()
     }
-
-    private fun max(a: Int, b: Int) = if (a > b) a else b
 
     override fun onDestroy() {
         currentBitmap?.recycle()

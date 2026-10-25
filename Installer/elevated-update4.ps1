@@ -6,7 +6,10 @@ Start-Transcript -Path $log -Force | Out-Null
 
 try {
   $msi = 'E:\AI\Mimo\Installer\MimoPro.msi'
-  $dir = 'C:\Program Files\Mimo Pro'
+  # Derive the real install dir from the service ImagePath (fresh installs
+  # can land in Program Files (x86), unlike the previous Program Files copy).
+  $img = (Get-CimInstance Win32_Service -Filter "Name='MimoPro'").PathName
+  $dir = Split-Path ($img.Trim('"') -replace ' --service.*$', '') -Parent
 
   Write-Host "Enumerating installed Mimo Pro products..."
   $products = Get-ItemProperty 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*' -ErrorAction SilentlyContinue |
@@ -22,6 +25,8 @@ try {
   $p = Start-Process msiexec.exe -ArgumentList "/i `"$msi`" /qn /norestart" -Wait -PassThru
   Write-Host "msiexec exit code: $($p.ExitCode)"
 
+  $img = (Get-CimInstance Win32_Service -Filter "Name='MimoPro'").PathName
+  $dir = Split-Path ($img.Trim('"') -replace ' --service.*$', '') -Parent
   Write-Host "Installed exe version: $((Get-Item "$dir\MimoPro.exe").VersionInfo.ProductVersion)"
 
   Write-Host "Writing agent.config.json..."

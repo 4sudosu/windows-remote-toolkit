@@ -31,6 +31,8 @@ data class CommandResult(
 interface LiveListener {
     fun onConnected()
     fun onFrame(imageBase64: String)
+    /** Real remote cursor position as fractions of the frame (agent-provided). */
+    fun onCursor(cx: Float, cy: Float) {}
     fun onError(message: String)
     fun onClosed()
 }

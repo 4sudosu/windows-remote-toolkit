@@ -335,7 +335,9 @@ wss.on('connection', (ws, req) => {
   ws.on('close', () => {
     failPendingFor(ws);
     const machineName = ws.machineName;
-    if (machineName) {
+    // Only clean up if THIS socket is still the registered one — a stale
+    // socket's late close event must not delete the fresh registration.
+    if (machineName && agents.get(machineName)?.ws === ws) {
       agents.delete(machineName);
       try { broadcastSSE('agent-offline', { machineName }); } catch { /* noop */ }
       console.log(`[AGENT OFFLINE] ${machineName}`);
@@ -351,6 +353,13 @@ function handleMessage(ws, msg) {
     case 'register': {
       const machineName = (msg.machineName || '').toLowerCase();
       ws.machineName = machineName;
+      // Drop a stale socket for the same machine so its later close event
+      // can't delete the fresh registration (reconnect after service restart).
+      const prev = agents.get(machineName);
+      if (prev && prev.ws !== ws) {
+        prev.ws.machineName = null;
+        try { prev.ws.close(1000, 'Replaced'); } catch { /* noop */ }
+      }
       const info = {
         machineName,
         hostname: msg.hostname || machineName,
@@ -440,7 +449,7 @@ function cancelPendingFor(ws) {
 function stopLiveFor(machineName) {
   for (const [viewer, state] of liveViewers) {
     if (state.machineName !== machineName) continue;
-    if (state.timer) clearInterval(state.timer);
+    if (state.stop) state.stop();
     liveViewers.delete(viewer);
     try { viewer.close(1000, 'Emergency stop'); } catch {}
   }
@@ -498,7 +507,7 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
   const allowed = new Set([
     'shell_exec', 'list_processes', 'kill_process', 'list_services', 'service_action',
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
-    'input_paragraph', 'screen_rotate',
+    'input_paragraph', 'screen_rotate', 'capture_screenshot',
     'camera_photo', 'camera_video', 'mic_record',
     'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all'
   ]);
@@ -555,7 +564,7 @@ app.post('/api/admin/unlock-device', (req, res) => {
 });
 
 // ── Live screen WebSocket (phone → server → agent) ──────────────────────
-const liveViewers = new Map(); // viewerWs -> { machineName, timer, lastAt }
+const liveViewers = new Map(); // viewerWs -> { machineName, stop, lastAt }
 
 liveWss.on('connection', (ws, req, machineName, url) => {
   // Token check removed — phone can connect without ?token= in URL
@@ -564,27 +573,39 @@ liveWss.on('connection', (ws, req, machineName, url) => {
   const agent = agents.get((machineName || '').toLowerCase());
   if (!agent || agent.ws.readyState !== agent.ws.OPEN) { ws.close(4004, 'Agent offline'); return; }
 
-  liveViewers.set(ws, { machineName: machineName.toLowerCase(), timer: null });
+  liveViewers.set(ws, { machineName: machineName.toLowerCase(), stop: null });
   console.log(`[LIVE] ${machineName} viewer connected`);
 
   const frameInterval = Math.max(250, Math.min(3000, Number(url.searchParams.get('interval') || 500)));
   // Small fast JPEG frames keep the live stream smooth; /screenshot stays PNG.
   const liveParams = { format: 'jpeg', quality: 72, maxWidth: 1600 };
-  const timer = setInterval(async () => {
-    const viewer = liveViewers.get(ws);
-    if (!viewer || ws.readyState !== ws.OPEN) { clearInterval(timer); return; }
-    try {
-      const result = await sendTask(agent, 'capture_screenshot', liveParams, 12000);
-      if (ws.readyState !== ws.OPEN) return;
-      if (!result.success) {
-        ws.send(JSON.stringify({ type: 'error', error: result.error === 'TIMEOUT' ? 'Capture timed out' : (result.error || 'Capture failed') }));
-        clearInterval(timer);
-        return;
-      }
-      ws.send(JSON.stringify({ type: 'frame', image: result.output, at: new Date().toISOString() }));
-    } catch { clearInterval(timer); }
-  }, frameInterval);
-  liveViewers.get(ws).timer = timer;
+  // Sequential capture loop (not setInterval): a capture takes seconds, so
+  // firing every interval would pile tasks on the agent until they time out
+  // and the stream dies with "Capture timed out". One bad capture is skipped.
+  let streaming = true;
+  let failures = 0;
+  (async () => {
+    while (streaming && ws.readyState === ws.OPEN) {
+      const t0 = Date.now();
+      try {
+        const result = await sendTask(agent, 'capture_screenshot', liveParams, 12000);
+        if (!streaming || ws.readyState !== ws.OPEN) break;
+        if (!result.success) {
+          if (++failures >= 5) {
+            ws.send(JSON.stringify({ type: 'error', error: result.error === 'TIMEOUT' ? 'Capture timed out' : (result.error || 'Capture failed') }));
+            break;
+          }
+        } else {
+          failures = 0;
+          ws.send(JSON.stringify({ type: 'frame', image: result.output, at: new Date().toISOString(), cursor: result.data || null }));
+        }
+      } catch { break; }
+      const wait = Math.max(50, frameInterval - (Date.now() - t0));
+      await new Promise((r) => setTimeout(r, wait));
+    }
+  })();
+  // viewer.stop is used by close/stopLiveFor instead of a timer handle
+  liveViewers.get(ws).stop = () => { streaming = false; };
 
   // Touch / cursor events from the phone → forward to the agent (fire and forget).
   ws.on('message', (data) => {
@@ -601,7 +622,7 @@ liveWss.on('connection', (ws, req, machineName, url) => {
 
   ws.on('close', () => {
     const viewer = liveViewers.get(ws);
-    if (viewer && viewer.timer) clearInterval(viewer.timer);
+    if (viewer && viewer.stop) viewer.stop();
     liveViewers.delete(ws);
     console.log(`[LIVE] ${machineName} viewer disconnected`);
   });

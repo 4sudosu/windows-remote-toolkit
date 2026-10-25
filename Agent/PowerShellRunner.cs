@@ -18,7 +18,7 @@ public static class PowerShellRunner
 {
     public static (string? Output, string? Error) RunInInteractiveSession(
         string outFile, int timeoutSec = 15,
-        string format = "png", int quality = 80, int maxWidth = 0)
+        string format = "png", int quality = 80, int maxWidth = 0, string? cursorFile = null)
     {
         var id = Guid.NewGuid().ToString("N")[..10];
         var dir = CaptureWorkDir();
@@ -31,7 +31,8 @@ public static class PowerShellRunner
             if (!TryInteractiveUser(out var user))
                 return (null, "No interactive user is logged on");
             var taskXml = Path.Combine(dir, $"t-{id}.xml");
-            var args = $"--capture \"{outFile}\" {format} {quality} {maxWidth}";
+            var args = $"--capture \"{outFile}\" {format} {quality} {maxWidth}" +
+                       (cursorFile != null ? $" \"{cursorFile}\"" : "");
             File.WriteAllText(taskXml, BuildTaskXml(user, taskName, args, "Mimo Pro interactive screen capture"), Encoding.Unicode);
 
             var create = SchTasks($"/Create /TN \"{taskName}\" /XML \"{taskXml}\" /F");
@@ -66,6 +67,60 @@ public static class PowerShellRunner
                     if (!snapshot.ContainsKey(f))
                         File.Delete(f);
                 }
+            }
+            catch { }
+        }
+    }
+
+    /// <summary>
+    /// Reads the real cursor position in the user's interactive session
+    /// (agent child runs --cursor) — a service in session 0 cannot see it.
+    /// </summary>
+    public static (float? Cx, float? Cy, string? Error) RunInteractiveCursor(int timeoutSec = 10)
+    {
+        var id = Guid.NewGuid().ToString("N")[..10];
+        var dir = CaptureWorkDir();
+        var taskName = $"MimoProCursor{id}";
+        var file = Path.Combine(dir, $"cursor-{id}.txt");
+        try
+        {
+            Directory.CreateDirectory(dir);
+
+            if (!TryInteractiveUser(out var user))
+                return (null, null, "No interactive user is logged on");
+            var taskXml = Path.Combine(dir, $"t-{id}.xml");
+            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, $"--cursor \"{file}\"", "Mimo Pro interactive cursor read"), Encoding.Unicode);
+
+            var create = SchTasks($"/Create /TN \"{taskName}\" /XML \"{taskXml}\" /F");
+            if (create.ExitCode != 0)
+                return (null, null, $"Failed to create interactive task (exit {create.ExitCode})");
+            SchTasks($"/Run /TN \"{taskName}\"");
+
+            var deadline = DateTime.UtcNow.AddSeconds(timeoutSec);
+            while (DateTime.UtcNow < deadline)
+            {
+                if (File.Exists(file)) break;
+                Thread.Sleep(300);
+            }
+            if (!File.Exists(file)) return (null, null, "Cursor task did not complete");
+            var txt = File.ReadAllText(file).Trim();
+            if (txt == "ERR") return (null, null, null); // cursor off-screen
+            var parts = txt.Split(',');
+            if (parts.Length == 2 && float.TryParse(parts[0], out var cx) && float.TryParse(parts[1], out var cy))
+                return (cx, cy, null);
+            return (null, null, "Invalid cursor payload");
+        }
+        catch (Exception ex)
+        {
+            return (null, null, ex.Message);
+        }
+        finally
+        {
+            try { SchTasks($"/Delete /TN \"{taskName}\" /F"); } catch { }
+            try
+            {
+                if (File.Exists(file)) File.Delete(file);
+                if (File.Exists(Path.Combine(dir, $"t-{id}.xml"))) File.Delete(Path.Combine(dir, $"t-{id}.xml"));
             }
             catch { }
         }

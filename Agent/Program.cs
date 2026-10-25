@@ -20,8 +20,23 @@ internal static class Program
                 string format = i + 2 < args.Length ? args[i + 2] : "png";
                 int.TryParse(i + 3 < args.Length ? args[i + 3] : "80", out int quality);
                 int.TryParse(i + 4 < args.Length ? args[i + 4] : "0", out int maxWidth);
+                string? cursorFile = i + 5 < args.Length ? args[i + 5] : null;
                 if (quality <= 0) quality = 80;
-                Environment.ExitCode = ScreenCapture.CaptureToFile(args[i + 1], format, quality, maxWidth);
+                Environment.ExitCode = ScreenCapture.CaptureToFile(args[i + 1], format, quality, maxWidth, cursorFile);
+                return;
+            }
+            // One-shot cursor position child: --cursor <outFile> writes "cx,cy"
+            // (fractions of the virtual screen). Only valid in an interactive
+            // session — services can't read the real cursor.
+            if (args[i] == "--cursor" && i + 1 < args.Length)
+            {
+                try
+                {
+                    var cf = ScreenCapture.CursorFraction();
+                    File.WriteAllText(args[i + 1], cf == null ? "ERR" : $"{cf.Value.Cx:0.####},{cf.Value.Cy:0.####}");
+                    Environment.ExitCode = 0;
+                }
+                catch { Environment.ExitCode = 1; }
                 return;
             }
         }
