@@ -20,19 +20,14 @@ class LauncherActivity : BaseActivity() {
             startActivity(Intent(this, ConnectActivity::class.java))
         }
         findViewById<Button>(R.id.btnOpenServer).setOnClickListener { openRunningServer() }
+        findViewById<Button>(R.id.btnLocalServer).setOnClickListener { openLocalDashboard() }
         findViewById<Button>(R.id.btnRunServer).setOnClickListener { toggleServer() }
     }
 
-    /** While the local server runs, "Connect to a Server" becomes "Local Server" and opens it. */
+    /** While the local server runs, a "Local Server" button appears to open its dashboard. */
     private fun updateConnectButton() {
-        val connect = findViewById<Button>(R.id.btnConnect)
-        if (NodeServerService.isRunning(this)) {
-            connect.text = getString(R.string.local_server)
-            connect.setOnClickListener { openLocalDashboard() }
-        } else {
-            connect.text = getString(R.string.launcher_connect)
-            connect.setOnClickListener { startActivity(Intent(this, ConnectActivity::class.java)) }
-        }
+        val local = findViewById<Button>(R.id.btnLocalServer)
+        local.visibility = if (NodeServerService.isRunning(this)) Button.VISIBLE else Button.GONE
     }
 
     private fun openLocalDashboard() {
