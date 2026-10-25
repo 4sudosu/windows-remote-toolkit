@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <resources>
  <string name="gemini_mode_ai">AI Mode - Gemini</string>
  <string name="power_menu_warning">Warning: These actions will affect the remote device immediately.</string>
@@ -226,7 +226,7 @@
  <string name="unlock_hint">Owner password</string>
  <string name="no_exe_selected">No EXE selected</string>
  <string name="retry">Retry</string>
- <string name="open_server">Open Running Server</string>
+ <string name="open_server">Open Render Server</string>
  <string name="open_server_none">Connect to a server first</string>
     <string name="run_server_all_interfaces">Run Local Server (On all Interfaces)</string>
     <string name="connect_server">Connect to a Server</string>
@@ -237,7 +237,7 @@
     <string name="local_password_create">Create and Start</string>
     <string name="local_server">Local Server</string>
     <string name="server_state_running">Mimo server running at %1$s</string>
-    <string name="server_started">Starting server on all network interfaces… PC connects to %1$s</string>
+    <string name="server_started">Starting server on all network interfacesâ€¦ PC connects to %1$s</string>
     <string name="server_stopped">Embedded server stopped</string>
  <string name="dashboard_title">Dashboard</string>
  <string name="location_accuracy">Accuracy: %1$s meters</string>
