@@ -62,3 +62,4 @@ packages/
 # Test artifacts
 coverage/
 .nyc_output/
+MimoPro-Setup-*.exe
