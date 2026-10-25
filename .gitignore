@@ -63,3 +63,6 @@ packages/
 coverage/
 .nyc_output/
 MimoPro-Setup-*.exe
+Installer/MimoSetup/bin/
+Installer/MimoSetup/obj/
+Installer/publish-setup/
