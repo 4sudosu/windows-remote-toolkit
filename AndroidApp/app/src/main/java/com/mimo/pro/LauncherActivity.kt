@@ -105,8 +105,12 @@ class LauncherActivity : BaseActivity() {
         }
     }
 
-    /** Opens the running server's web dashboard inside the app (auto-signed-in). */
+    /** Opens the local server's dashboard when it runs, else the connected (Render) server's. */
     private fun openRunningServer() {
+        if (NodeServerService.isRunning(this)) {
+            openLocalDashboard()
+            return
+        }
         val url = Prefs.serverUrl(this)
         if (url.isBlank()) {
             Toast.makeText(this, R.string.open_server_none, Toast.LENGTH_SHORT).show()

@@ -37,6 +37,7 @@ class NodeServerService : Service() {
         const val DEFAULT_PORT = 4777
         @Volatile private var started = false
         @Volatile private var lifetimeRunning = false
+        private val LOCK = Any()
 
         /** Bind address + admin password for the embedded server. */
         fun configure(context: Context, host: String, port: Int, password: String) {
@@ -170,15 +171,17 @@ class NodeServerService : Service() {
     // nodejs-mobile exposes an API for stopping the engine
     private fun startNodeEngine(nodeDir: File) {
         val scriptPath = File(nodeDir, "server.js").absolutePath
-        try {
-            if (!started) {
-                System.loadLibrary("native-lib")
-                System.loadLibrary("node")
-                startNodeWithArguments(arrayOf("node", scriptPath))
-                started = true
+        synchronized(LOCK) {
+            try {
+                if (!started) {
+                    System.loadLibrary("native-lib")
+                    System.loadLibrary("node")
+                    startNodeWithArguments(arrayOf("node", scriptPath))
+                    started = true
+                }
+            } catch (t: Throwable) {
+                android.util.Log.e("MimoServer", "Node engine unavailable", t)
             }
-        } catch (t: Throwable) {
-            android.util.Log.e("MimoServer", "Node engine unavailable", t)
         }
     }
 
