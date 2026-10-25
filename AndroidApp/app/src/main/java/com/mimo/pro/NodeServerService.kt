@@ -32,16 +32,21 @@ class NodeServerService : Service() {
         private const val PREFS = "mimo_node_server"
         private const val HOST_KEY = "host"
         private const val PORT_KEY = "port"
+        private const val PASSWORD_KEY = "password"
         const val DEFAULT_HOST = "0.0.0.0"
         const val DEFAULT_PORT = 4777
         @Volatile private var started = false
         @Volatile private var lifetimeRunning = false
 
-        /** Bind address for the embedded server; blank falls back to [DEFAULT_HOST]. */
-        fun configure(context: Context, host: String, port: Int) {
+        /** Bind address + admin password for the embedded server. */
+        fun configure(context: Context, host: String, port: Int, password: String) {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit()
-                .putString(HOST_KEY, host).putInt(PORT_KEY, port).apply()
+                .putString(HOST_KEY, host).putInt(PORT_KEY, port).putString(PASSWORD_KEY, password).apply()
         }
+
+        fun adminPassword(context: Context): String =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getString(PASSWORD_KEY, null)?.takeIf { it.isNotBlank() } ?: Prefs.password(context)
 
         fun currentPort(context: Context): Int =
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(PORT_KEY, DEFAULT_PORT)
@@ -121,7 +126,7 @@ class NodeServerService : Service() {
                 if (!nodeDir.exists()) throw IllegalStateException("nodejs-project asset copy failed")
                 File(nodeDir, "server-config.json").writeText(
                     """
-                    {"host":"$host","port":$port,"adminPassword":"${Prefs.password(this)}"}
+                    {"host":"$host","port":$port,"adminPassword":"${NodeServerService.adminPassword(this@NodeServerService)}"}
                     """.trimIndent()
                 )
                 startNodeEngine(nodeDir)

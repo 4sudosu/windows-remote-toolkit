@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 
 class LauncherActivity : BaseActivity() {
 
@@ -26,24 +27,46 @@ class LauncherActivity : BaseActivity() {
         if (NodeServerService.isRunning(this)) {
             NodeServerService.stop(this)
             Toast.makeText(this, R.string.server_stopped, Toast.LENGTH_SHORT).show()
-        } else {
-            NodeServerService.configure(this, NodeServerService.DEFAULT_HOST, NodeServerService.DEFAULT_PORT)
-            NodeServerService.start(this)
-            val ip = NodeServerService.localIps(this).firstOrNull()
-            val port = NodeServerService.currentPort(this)
-            Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:$port"), Toast.LENGTH_LONG).show()
-            // Open the local dashboard (its login page asks for the admin password).
-            // Node copies assets + boots on first run, so give it a head start.
-            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-                if (NodeServerService.isRunning(this)) {
-                    try {
-                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:$port")))
-                    } catch (_: Exception) {
-                    }
-                }
-            }, 2500)
+            updateServerState()
+            return
         }
+        // Ask to create the admin password for the local server before it boots.
+        val input = android.widget.EditText(this).apply {
+            transformationMethod = android.text.method.PasswordTransformationMethod.getInstance()
+            hint = getString(R.string.local_password_hint)
+        }
+        AlertDialog.Builder(this)
+            .setTitle(R.string.local_password_title)
+            .setMessage(R.string.local_password_desc)
+            .setView(input)
+            .setPositiveButton(R.string.local_password_create) { _, _ ->
+                val pw = input.text.toString().trim()
+                if (pw.isBlank()) {
+                    Toast.makeText(this, R.string.password_required, Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                startLocalServer(pw)
+            }
+            .setNegativeButton(R.string.cancel, null)
+            .show()
+    }
+
+    private fun startLocalServer(password: String) {
+        NodeServerService.configure(this, NodeServerService.DEFAULT_HOST, NodeServerService.DEFAULT_PORT, password)
+        NodeServerService.start(this)
+        val ip = NodeServerService.localIps(this).firstOrNull()
+        val port = NodeServerService.currentPort(this)
+        Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:$port"), Toast.LENGTH_LONG).show()
         updateServerState()
+        // Node copies assets + boots on first run; open the in-app dashboard then.
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            if (NodeServerService.isRunning(this)) {
+                val d = Intent(this, DashboardActivity::class.java)
+                d.putExtra(DashboardActivity.EXTRA_BASE_URL, "http://127.0.0.1:$port")
+                d.putExtra(DashboardActivity.EXTRA_PASSWORD, password)
+                startActivity(d)
+            }
+        }, 2500)
     }
 
     /** Shows the embedded-server state under the action buttons. */

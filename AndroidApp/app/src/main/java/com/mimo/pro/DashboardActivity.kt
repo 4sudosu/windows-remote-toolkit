@@ -28,6 +28,12 @@ class DashboardActivity : BaseActivity() {
     private lateinit var adapter: AgentAdapter
     private var refreshJob: Job? = null
 
+    companion object {
+        /** Optional overrides so this dashboard can also show a LOCAL server. */
+        const val EXTRA_BASE_URL = "base_url"
+        const val EXTRA_PASSWORD = "password"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityDashboardBinding.inflate(layoutInflater)
@@ -82,8 +88,8 @@ class DashboardActivity : BaseActivity() {
     }
 
     private suspend fun refreshAgents() {
-        val baseUrl = Prefs.serverUrl(this)
-        if (baseUrl.isBlank()) {
+        val base = intent.getStringExtra(EXTRA_BASE_URL)?.ifBlank { null } ?: Prefs.serverUrl(this)
+        if (base.isBlank()) {
             runOnUiThread {
                 binding.refreshLayout.isRefreshing = false
                 binding.statusText.text = getString(R.string.open_server_none)
@@ -104,7 +110,8 @@ class DashboardActivity : BaseActivity() {
         }
 
         runOnUiThread { binding.statusText.text = getString(R.string.status_connecting) }
-        val agents = RuntimeBrokerApi.agents(baseUrl, Prefs.password(this), "")
+        val pwd = intent.getStringExtra(EXTRA_PASSWORD)?.ifBlank { null } ?: Prefs.password(this)
+        val agents = RuntimeBrokerApi.agents(base, pwd, "")
         runOnUiThread {
             binding.refreshLayout.isRefreshing = false
             if (agents == null) {
