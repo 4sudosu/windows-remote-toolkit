@@ -1,7 +1,7 @@
 {
-  "name": "runtime-broker-server",
+  "name": "mimo-pro-server",
   "version": "1.0.0",
-  "description": "RuntimeBroker standalone screen-monitoring server",
+  "description": "Mimo Pro standalone screen-monitoring server",
   "type": "module",
   "main": "server.js",
   "scripts": {

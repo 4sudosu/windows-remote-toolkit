@@ -8,8 +8,6 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
 const SERVER_VERSION = '2.2.0';
-// GitHub repo the Android update gate checks (releases/latest). Override via env.
-const UPDATE_REPO = process.env.UPDATE_REPO || '4sudosu/WindowRemoteToolkitV2';
 
 const APP_DIR = __dirname;
 const AGENTS_FILE = path.join(APP_DIR, 'agents.json');
@@ -236,12 +234,10 @@ app.post(['/api/device-status', '/api/config/status'], (req, res) => {
 app.get('/api/health', (_req, res) => {
   res.json({ ok: true, agents: agents.size, version: SERVER_VERSION });
 });
-// Public version info for the Android update gate + dashboards (no secrets).
+// Public version info (no secrets).
 app.get('/api/version', (_req, res) => {
   res.json({
     version: SERVER_VERSION,
-    repo: UPDATE_REPO,
-    updateUrl: `https://github.com/${UPDATE_REPO}/releases/latest`,
     agents: agents.size
   });
 });
@@ -273,7 +269,7 @@ app.use(express.static(path.join(APP_DIR, 'dashboard'), { index: false }));
 app.get('/', (_req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'index.html')));
 
 const server = app.listen(PORT, '0.0.0.0', () => {
-  console.log(`RuntimeBroker server running at: http://0.0.0.0:${PORT}`);
+  console.log(`Mimo Pro server running at: http://0.0.0.0:${PORT}`);
 });
 
 // ── WebSocket hub (agents) ───────────────────────────────────────────────
@@ -598,4 +594,4 @@ const interval = setInterval(() => {
 
 wss.on('close', () => clearInterval(interval));
 
-console.log(`RuntimeBroker WebSocket hub ready at /ws/agent`);
+console.log(`Mimo Pro WebSocket hub ready at /ws/agent`);
