@@ -23,6 +23,26 @@ class LauncherActivity : BaseActivity() {
         findViewById<Button>(R.id.btnRunServer).setOnClickListener { toggleServer() }
     }
 
+    /** While the local server runs, "Connect to a Server" becomes "Local Server" and opens it. */
+    private fun updateConnectButton() {
+        val connect = findViewById<Button>(R.id.btnConnect)
+        if (NodeServerService.isRunning(this)) {
+            connect.text = getString(R.string.local_server)
+            connect.setOnClickListener { openLocalDashboard() }
+        } else {
+            connect.text = getString(R.string.launcher_connect)
+            connect.setOnClickListener { startActivity(Intent(this, ConnectActivity::class.java)) }
+        }
+    }
+
+    private fun openLocalDashboard() {
+        val port = NodeServerService.currentPort(this)
+        val d = Intent(this, DashboardActivity::class.java)
+        d.putExtra(DashboardActivity.EXTRA_BASE_URL, "http://127.0.0.1:$port")
+        d.putExtra(DashboardActivity.EXTRA_PASSWORD, NodeServerService.adminPassword(this))
+        startActivity(d)
+    }
+
     private fun toggleServer() {
         if (NodeServerService.isRunning(this)) {
             NodeServerService.stop(this)
@@ -58,6 +78,7 @@ class LauncherActivity : BaseActivity() {
         val port = NodeServerService.currentPort(this)
         Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:$port"), Toast.LENGTH_LONG).show()
         updateServerState()
+        updateConnectButton()
         // Node copies assets + boots on first run; open the in-app dashboard then.
         android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
             if (NodeServerService.isRunning(this)) {
@@ -98,6 +119,7 @@ class LauncherActivity : BaseActivity() {
         super.onResume()
         updateStatus()
         updateServerState()
+        updateConnectButton()
     }
 
     private fun updateStatus() {

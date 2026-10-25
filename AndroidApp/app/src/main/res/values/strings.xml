@@ -235,6 +235,7 @@
     <string name="local_password_desc">Create the admin password for your local server. PCs and the dashboard sign in with it.</string>
     <string name="local_password_hint">New admin password</string>
     <string name="local_password_create">Create and Start</string>
+    <string name="local_server">Local Server</string>
     <string name="server_state_running">Mimo server running at %1$s</string>
     <string name="server_started">Starting server on all network interfaces… PC connects to %1$s</string>
     <string name="server_stopped">Embedded server stopped</string>
