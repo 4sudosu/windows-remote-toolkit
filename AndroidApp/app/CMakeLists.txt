@@ -20,3 +20,14 @@ else()
 endif()
 
 include_directories(${CMAKE_SOURCE_DIR}/libnode/include/node/)
+
+# Gradle ignores src/main/jniLibs when externalNativeBuild is on, so the
+# libc++_shared.so that libnode.so depends on is packaged via CMake.
+set(LIBCPP_DIR ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI})
+if(EXISTS ${LIBCPP_DIR}/libc++_shared.so)
+    add_library(cpp_shared SHARED IMPORTED)
+    set_target_properties(cpp_shared PROPERTIES IMPORTED_LOCATION ${LIBCPP_DIR}/libc++_shared.so)
+    target_link_libraries(native-lib cpp_shared)
+else()
+    message(WARNING "libc++_shared.so missing for ${ANDROID_ABI}; embedded server will not load")
+endif()

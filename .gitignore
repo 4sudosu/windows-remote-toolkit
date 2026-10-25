@@ -66,3 +66,7 @@ MimoPro-Setup-*.exe
 Installer/MimoSetup/bin/
 Installer/MimoSetup/obj/
 Installer/publish-setup/
+
+AndroidApp/*.log
+AndroidApp/u*.xml
+AndroidApp/app/libnode/bin/

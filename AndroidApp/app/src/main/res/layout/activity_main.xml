@@ -50,6 +50,25 @@
         android:layout_marginTop="4dp"
         android:text="@string/open_server" />
 
+    <Button
+        android:id="@+id/btnRunServer"
+        style="@style/Widget.Material3.Button.TonalButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="4dp"
+        android:text="@string/run_server_all_interfaces" />
+
+    <TextView
+        android:id="@+id/tvServerState"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="16dp"
+        android:layout_marginTop="2dp"
+        android:textColor="@color/offline_gray"
+        android:textSize="12sp"
+        android:visibility="gone" />
+
     <LinearLayout
         android:id="@+id/errorBox"
         android:layout_width="match_parent"
