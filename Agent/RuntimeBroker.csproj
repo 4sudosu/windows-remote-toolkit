@@ -7,10 +7,13 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <AssemblyName>RuntimeBroker</AssemblyName>
+    <AssemblyName>MimoPro</AssemblyName>
     <RootNamespace>RuntimeBroker</RootNamespace>
-    <Version>1.0.0.2</Version>
-    <InformationalVersion>1.0.0.2</InformationalVersion>
+    <Version>1.0.0.4</Version>
+    <InformationalVersion>1.0.0.4</InformationalVersion>
+    <Product>Mimo Pro</Product>
+    <Company>Mimo</Company>
+    <FileDescription>Mimo Pro agent</FileDescription>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

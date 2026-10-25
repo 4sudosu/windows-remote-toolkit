@@ -4,23 +4,38 @@ plugins {
 }
 
 android {
-    namespace = "com.runtimebroker.app"
+    namespace = "com.mimo.pro"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.runtimebroker.app"
+        applicationId = "com.mimo.pro"
         minSdk = 24
         targetSdk = 34
-        versionCode = 13
-        versionName = "4.5"
+        versionCode = 14
+        versionName = "1.0"
 
-        ndk {
-            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        // No update gate
+        buildConfigField("boolean", "UPDATE_GATE_ENABLED", "false")
+    }
+
+    flavorDimensions += "version"
+    productFlavors {
+        create("normal") {
+            dimension = "version"
+            applicationId = "com.mimo.app"
+            versionNameSuffix = "-normal"
+            buildConfigField("boolean", "IS_PRO_VERSION", "false")
+            buildConfigField("String", "APP_VARIANT", "\"normal\"")
+            resValue("string", "app_name", "Mimo")
         }
-
-        // Update gate switch (WinSysMonitor V2 pattern): standard builds must
-        // verify releases/latest; the "noupdate" build skips the check.
-        buildConfigField("boolean", "UPDATE_GATE_ENABLED", "true")
+        create("pro") {
+            dimension = "version"
+            applicationId = "com.mimo.pro"
+            versionNameSuffix = "-pro"
+            buildConfigField("boolean", "IS_PRO_VERSION", "true")
+            buildConfigField("String", "APP_VARIANT", "\"pro\"")
+            resValue("string", "app_name", "Mimo Pro")
+        }
     }
 
     buildTypes {
@@ -31,7 +46,7 @@ android {
                 val variant = this
                 variant.outputs.all {
                     (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                        "RuntimeBroker${variant.versionName}.apk"
+                        "Mimo${variant.flavorName.capitalize()}${variant.versionName}.apk"
                 }
             }
         }
@@ -40,20 +55,7 @@ android {
                 val variant = this
                 variant.outputs.all {
                     (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                        "RuntimeBroker${variant.versionName}.apk"
-                }
-            }
-        }
-        create("noupdate") {
-            initWith(getByName("debug"))
-            // Same package/version so it installs over any 4.3 build.
-            versionNameSuffix = "-noupdate"
-            buildConfigField("boolean", "UPDATE_GATE_ENABLED", "false")
-            applicationVariants.all {
-                val variant = this
-                variant.outputs.all {
-                    (this as com.android.build.gradle.internal.api.BaseVariantOutputImpl).outputFileName =
-                        "RuntimeBroker${variant.versionName}.apk"
+                        "Mimo${variant.flavorName.capitalize()}${variant.versionName}.apk"
                 }
             }
         }
@@ -68,11 +70,6 @@ android {
     buildFeatures {
         viewBinding = true
         buildConfig = true
-    }
-    sourceSets {
-        getByName("main") {
-            jniLibs.srcDirs("libnode/bin/")
-        }
     }
 }
 

@@ -7,19 +7,7 @@
         android:title="@string/refresh"
         app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/action_launcher"
-        android:title="@string/action_launcher"
-        app:showAsAction="never" />
-    <item
         android:id="@+id/action_connect"
-        android:title="@string/action_change_server"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_stop_server"
-        android:title="@string/stop_server"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_web"
-        android:title="@string/action_web"
+        android:title="@string/connect_title"
         app:showAsAction="never" />
 </menu>

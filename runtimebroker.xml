@@ -1,0 +1,14 @@
+<?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+    <string name="host_ip">0.0.0.0</string>
+    <string name="password">1234</string>
+    <set name="known_agents">
+        <string>desktop-79bjncg</string>
+    </set>
+    <string name="last_machine">desktop-79bjncg</string>
+    <string name="host_port">4777</string>
+    <int name="active_tab" value="0" />
+    <string name="server_mode">connect</string>
+    <string name="last_host">DESKTOP-79BJNCG</string>
+    <string name="server_url">http://127.0.0.1:4777</string>
+</map>

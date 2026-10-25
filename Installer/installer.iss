@@ -1,6 +1,6 @@
-; RuntimeBroker — Standalone Installer (admin-only, installs a 24x7 Windows service)
+; Mimo Pro — Standalone Installer (admin-only, installs a 24x7 Windows service)
 ; Build: ISCC.exe installer.iss /DMyAppVersion=1.0.0.2
-;   (needs ..\publish-single\RuntimeBroker.exe published first)
+;   (needs ..\publish-single\MimoPro.exe published first)
 ;
 ; This installer:
 ;   1. Requires Administrator (PrivilegesRequired=admin)
@@ -13,14 +13,14 @@
 ;   5. Registers + starts the 24x7 Windows service (LocalSystem) with crash
 ;      recovery (auto-restart).
 
-#define MyAppName "RuntimeBroker"
+#define MyAppName "Mimo Pro"
 #ifndef MyAppVersion
 #define MyAppVersion "1.0.0.2"
 #endif
-#define MyAppExeName "RuntimeBroker.exe"
-#define MyAppServiceName "RuntimeBroker"
+#define MyAppExeName "MimoPro.exe"
+#define MyAppServiceName "MimoPro"
 #ifndef MyOutputBaseFilename
-#define MyOutputBaseFilename "RuntimeBroker-Setup-1.0.0.2"
+#define MyOutputBaseFilename "MimoPro-Setup-1.0.0.2"
 #endif
 #define MyAppId "{{B4E8F2A1-9C3D-4E7B-8D5F-2A6C9E1B4D70}"
 
@@ -28,8 +28,8 @@
 AppId={#MyAppId}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}
-AppPublisher=RuntimeBroker
-DefaultDirName={autopf}\RuntimeBroker
+AppPublisher=Mimo Pro
+DefaultDirName={autopf}\Mimo Pro
 DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\installer-output
@@ -60,7 +60,7 @@ Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{
 ; Remember the chosen service name so uninstall can stop/delete it even when
 ; it was renamed. The key is removed on uninstall (uninsdeletekey).
 [Registry]
-Root: HKLM; Subkey: "SOFTWARE\RuntimeBroker"; ValueType: string; ValueName: "ServiceName"; ValueData: "{code:ServiceNameForInno}"; Flags: uninsdeletekey
+Root: HKLM; Subkey: "SOFTWARE\Mimo Pro"; ValueType: string; ValueName: "ServiceName"; ValueData: "{code:ServiceNameForInno}"; Flags: uninsdeletekey
 
 ; Remove EVERYTHING on uninstall: reset the config ACL (locked to
 ; SYSTEM/Administrators), stop + delete the service, kill any running EXE,
@@ -145,13 +145,18 @@ begin
     Exec('sc.exe', 'delete {#MyAppServiceName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   end;
   Exec('taskkill.exe', '/f /im {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  // Legacy builds shipped as RuntimeBroker.exe — kill any stragglers so the
+  // file lock never blocks an upgrade, then remove the stale old service.
+  Exec('taskkill.exe', '/f /im RuntimeBroker.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('sc.exe', 'stop RuntimeBroker', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('sc.exe', 'delete RuntimeBroker', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
 
 procedure InitializeWizard;
 begin
   ServerPage := CreateInputQueryPage(
     wpSelectTasks,
-    'RuntimeBroker Server',
+    'Mimo Pro Server',
     'Where should the agent connect?',
     'Enter the IP address or hostname of the relay server, then the port. The token is optional — leave it empty if the server does not require one. These can be changed later by an administrator editing agent.config.json in the install folder (the agent reloads it automatically).'
   );
@@ -166,7 +171,7 @@ begin
 
   ServicePage := CreateInputQueryPage(
     ServerPage.ID,
-    'RuntimeBroker Service',
+    'Mimo Pro Service',
     'Which name should the Windows service use?',
     'This is the name shown in services.msc. You can rename it on every install ' +
     '(e.g. to blend in). Silent installs can pass /SERVICENAME=<name>.'
@@ -266,7 +271,7 @@ begin
       'if (-not $running) { exit 2 }' + #13#10 +
       'exit 0';
 
-    ScriptPath := ExpandConstant('{tmp}\install-runtimebroker-service.ps1');
+    ScriptPath := ExpandConstant('{tmp}\install-mimopro-service.ps1');
     SaveStringToFile(ScriptPath, Script, False);
     Exec('powershell.exe',
       '-NoProfile -ExecutionPolicy Bypass -File "' + ScriptPath + '"',

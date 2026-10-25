@@ -197,15 +197,22 @@ internal static class RemoteCommands
                     s.Stop();
                     s.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
                     break;
-                case "restart":
-                    if (s.Status != ServiceControllerStatus.Stopped)
+                case "restart": {
+                    // The agent cannot stop-then-start ITS OWN service from
+                    // within its service process: the SCM shutdown kills the
+                    // process before Start() runs. Run stop+start detached so
+                    // this works for the agent's own service too.
+                    var psiR = new ProcessStartInfo("cmd.exe",
+                        $"/c sc.exe stop \"{name}\" >nul 2>&1 &timeout /t 2 /nobreak >nul &sc.exe start \"{name}\" >nul 2>&1")
                     {
-                        s.Stop();
-                        s.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(30));
-                    }
-                    s.Start();
-                    s.WaitForStatus(ServiceControllerStatus.Running, TimeSpan.FromSeconds(30));
-                    break;
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+                    Process.Start(psiR)?.Dispose();
+                    Thread.Sleep(500);
+                    return (true, $"{action} {name} (detached)");
+                }
                 default:
                     return (false, $"Unknown service action: {action}");
             }

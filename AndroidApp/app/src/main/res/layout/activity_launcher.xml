@@ -2,23 +2,42 @@
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true"
-    android:background="@color/launcher_bg">
+    android:fillViewport="true">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="24dp"
+        android:padding="26dp"
         android:gravity="center_horizontal">
+
+        <!-- Logo in a raised glass tile -->
+        <FrameLayout
+            android:layout_width="104dp"
+            android:layout_height="104dp"
+            android:layout_marginTop="56dp">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/bg_logo_tile" />
+
+            <ImageView
+                android:layout_width="76dp"
+                android:layout_height="76dp"
+                android:layout_gravity="center"
+                android:contentDescription="@string/app_name"
+                android:src="@drawable/ic_launcher_foreground" />
+        </FrameLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="48dp"
+            android:layout_marginTop="24dp"
             android:text="@string/launcher_title"
             android:textSize="30sp"
             android:textStyle="bold"
+            android:letterSpacing="-0.02"
             android:textColor="@color/white" />
 
         <TextView
@@ -27,104 +46,53 @@
             android:layout_marginTop="6dp"
             android:text="@string/launcher_subtitle"
             android:textSize="15sp"
-            android:textColor="#94A3B8" />
+            android:textColor="@color/offline_gray" />
 
         <TextView
             android:id="@+id/tvStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="18dp"
-            android:padding="10dp"
-            android:background="@drawable/bg_status_chip"
+            android:layout_marginTop="22dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:background="@drawable/bg_status_pill"
             android:text="@string/launcher_status_none"
             android:textSize="13sp"
-            android:textColor="#94A3B8" />
-
-        <Button
-            android:id="@+id/btnOpenDashboard"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/launcher_open_dashboard"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:backgroundTint="#6366F1"
-            android:textColor="@color/white" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:text="@string/launcher_open_dashboard_desc"
-            android:textSize="12sp"
-            android:textColor="#64748B" />
-
-        <Button
-            android:id="@+id/btnStartServer"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="40dp"
-            android:text="@string/launcher_start_server"
-            android:textSize="16sp"
-            android:backgroundTint="@color/primary"
-            android:textColor="@color/white" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:text="@string/launcher_start_desc"
-            android:textSize="12sp"
-            android:textColor="#64748B" />
+            android:textColor="@color/on_surface" />
 
         <Button
             android:id="@+id/btnConnect"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
+            android:layout_height="56dp"
+            android:layout_marginTop="36dp"
+            android:background="@drawable/bg_btn_primary"
+            android:letterSpacing="0.01"
             android:text="@string/launcher_connect"
             android:textSize="16sp"
-            android:backgroundTint="@color/cyan"
+            android:textStyle="bold"
             android:textColor="@color/white" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
+            android:layout_marginTop="10dp"
             android:gravity="center"
             android:text="@string/launcher_connect_desc"
             android:textSize="12sp"
             android:textColor="#64748B" />
 
         <Button
-            android:id="@+id/btnRunAll"
+            android:id="@+id/btnOpenServer"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="22dp"
-            android:text="@string/launcher_run_all"
+            android:layout_height="56dp"
+            android:layout_marginTop="10dp"
+            android:background="@drawable/bg_btn_bordered"
+            android:letterSpacing="0.01"
+            android:text="@string/open_server"
             android:textSize="16sp"
-            android:backgroundTint="@color/online_green"
+            android:textStyle="bold"
             android:textColor="@color/white" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:gravity="center"
-            android:text="@string/launcher_run_all_desc"
-            android:textSize="12sp"
-            android:textColor="#64748B" />
-
-        <TextView
-            android:id="@+id/tvDeveloper"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="34dp"
-            android:padding="10dp"
-            android:text="@string/launcher_developer"
-            android:textSize="14sp"
-            android:textColor="@color/cyan" />
     </LinearLayout>
 </ScrollView>

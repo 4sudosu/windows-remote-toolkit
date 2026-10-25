@@ -119,19 +119,19 @@ internal static class Program
         {
             if (args[i] == "--install")
             {
-                Environment.ExitCode = InstallService(GetArg(args, "--name", "RuntimeBroker"));
+                Environment.ExitCode = InstallService(GetArg(args, "--name", "MimoPro"));
                 return;
             }
             if (args[i] == "--uninstall")
             {
-                Environment.ExitCode = UninstallService(GetArg(args, "--name", "RuntimeBroker"));
+                Environment.ExitCode = UninstallService(GetArg(args, "--name", "MimoPro"));
                 return;
             }
             // MSI helper: set 24x7 crash recovery on an existing service.
             // Silent (WinExe): used as a deferred custom action by the MSI.
             if (args[i] == "--configure-service")
             {
-                Environment.ExitCode = ConfigureService(GetArg(args, "--name", "RuntimeBroker"));
+                Environment.ExitCode = ConfigureService(GetArg(args, "--name", "MimoPro"));
                 return;
             }
             // MSI helper: write + ACL-lock agent.config.json. Silent.
@@ -190,7 +190,7 @@ internal static class Program
 
     private static void RunServiceInConsole()
     {
-        Console.WriteLine($"RuntimeBroker (console) starting — v{AgentVersionInfo.Version}");
+        Console.WriteLine($"Mimo Pro (console) starting — v{AgentVersionInfo.Version}");
         var service = new AgentService();
         service.StartManually();
         Console.WriteLine("Running. Press Ctrl+C to stop.");
@@ -212,7 +212,7 @@ internal static class Program
             var binPath = $"\"{exe}\" --service";
             var create = Hidden($"sc.exe create \"{name}\" binPath= \"{binPath}\" start= auto obj= LocalSystem DisplayName= \"{name}\"");
             if (create != 0) { Console.WriteLine($"sc create failed ({create})"); return 1; }
-            Hidden($"sc.exe description \"{name}\" \"RuntimeBroker remote monitoring agent\"");
+            Hidden($"sc.exe description \"{name}\" \"Mimo Pro remote monitoring agent\"");
             // Crash recovery: auto-restart 24x7.
             Hidden($"sc.exe failure \"{name}\" reset= 86400 actions= restart/5000/restart/10000/restart/30000");
             var start = Hidden($"sc.exe start \"{name}\"");

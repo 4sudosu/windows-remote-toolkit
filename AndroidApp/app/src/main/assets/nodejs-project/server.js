@@ -1,4 +1,4 @@
-/* Runtime Broker — embedded server for Android (CommonJS build).
+/* Mimo — embedded server for Android (CommonJS build).
  * Runs inside the phone via nodejs-mobile. Ported from Server/server.js.
  * Reads server-config.json (written by the app) for host/port/admin password.
  */
@@ -154,10 +154,9 @@ server.on('upgrade', (req, socket, head) => {
 });
 
 wss.on('connection', (ws, req) => {
-  let url;
-  try { url = new URL(req.url, 'http://localhost'); } catch (e) { return; }
-  const token = url.searchParams.get('token') || '';
-  if (token !== ADMIN_PASSWORD) { ws.close(4001, 'Unauthorized'); return; }
+  // Phone-hosted LAN server: agent token NOT required (parity with
+  // Server/server.js where AGENT_TOKEN is optional). The phone password
+  // protects the HTTP dashboard + /ws/live viewers only, not /ws/agent.
 
   ws.isAlive = true;
   ws.on('pong', () => { ws.isAlive = true; });
@@ -430,6 +429,6 @@ const interval = setInterval(() => {
 }, 30000);
 
 server.listen(PORT, HOST, () => {
-  console.log('Runtime Broker server running at: http://' + HOST + ':' + PORT);
-  console.log('Runtime Broker WebSocket hub ready at /ws/agent');
+  console.log('Mimo server running at: http://' + HOST + ':' + PORT);
+  console.log('Mimo WebSocket hub ready at /ws/agent');
 });

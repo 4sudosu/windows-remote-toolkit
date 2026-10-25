@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AssemblyName>MimoSetup</AssemblyName>
+    <RootNamespace>MimoSetup</RootNamespace>
+    <Version>1.0.0.2</Version>
+    <InformationalVersion>1.0.0.2</InformationalVersion>
+    <Product>Mimo Pro</Product>
+    <FileDescription>Mimo Pro installer</FileDescription>
+    <PublishSingleFile>true</PublishSingleFile>
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.ServiceProcess.ServiceController" Version="8.0.0" />
+    <!-- The MSI engine is embedded; setup extracts it to %TEMP% and runs it silently. -->
+    <EmbeddedResource Include="..\..\installer-output\MimoPro-Setup-1.0.0.2.msi" LogicalName="MimoPro-Setup.msi" />
+  </ItemGroup>
+
+</Project>

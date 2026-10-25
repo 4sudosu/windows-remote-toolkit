@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Mimo Pro</string>
+    <string name="pro_app_name">Mimo Pro</string>
+    <string name="search_service_hint">Search running service</string>
+    <string name="no_services">No services returned</string>
+    <string name="shell_clear">Clear</string>
+    <string name="shell_history">History</string>
+    <string name="shell_prompt">C:\></string>
+    <string name="terminal_type_cmd">Type a command…</string>
+    <string name="key_tab">TAB</string>
+    <string name="key_up">UP prev</string>
+    <string name="key_down">DOWN next</string>
+    <string name="key_ctrl_c">CTRL+C</string>
+    <string name="launcher_run_all">Run Server on All Network Interfaces</string>
+    <string name="all_interfaces_warning">When enabled, server will be accessible from all network interfaces. A strong password is required for security.</string>
+    <string name="all_interfaces_password_hint">Enter a strong password</string>
+    <string name="download_file">Download</string>
+    <string name="media_open">Preview</string>
+    <string name="media_share">Share / Save elsewhere</string>
+    <string name="media_delete">Delete</string>
+    <string name="kill">Kill</string>
+    <string name="manage">Manage</string>
+    <string name="ready_to_transfer">Ready to transfer</string>
+    <string name="cat_all">All</string>
+    <string name="cat_apps">Apps</string>
+    <string name="cat_background">Background</string>
+    <string name="cat_ram">By RAM</string>
+    <string name="cat_cpu">By CPU</string>
+    <string name="cat_internet">Internet</string>
+    <string name="no_processes">No processes returned</string>
+    <string name="run_app_title">Run Application on Device</string>
+    <string name="loading_apps">Loading applications...</string>
+    <string name="no_apps_found">No applications found</string>
+    <string name="transfer_files_title">Transfer Files to Device</string>
+    <string name="clear_selection">Clear Selection</string>
+    <string name="select_files">Select Files</string>
+    <string name="transfer_files">Transfer to Device</string>
+    <string name="update_available">Update available</string>
+    <string name="update_required_msg">A new version is ready. The app cannot be used until you update.</string>
+    <string name="update_now">Download update</string>
+    <string name="update_exit">Exit</string>
+    <string name="gemini_badge_new">NEW</string>
+    <string name="port_hint">Port</string>
+
+    <!-- Camera -->
+    <string name="capturing_photo">Capturing photo…</string>
+    <string name="recording">Recording…</string>
+    <string name="video_saved">Video saved</string>
+    <string name="saved_media">Saved to media</string>
+
+    <!-- Cookies -->
+    <string name="files_error">Error loading files</string>
+
+    <!-- File Manager -->
+    <string name="downloading">Downloading…</string>
+    <string name="downloaded">Downloaded</string>
+    <string name="folder">Folder</string>
+    <string name="file_error">File error</string>
+    <string name="uploading">Uploading…</string>
+    <string name="cannot_upload">Cannot upload</string>
+    <string name="file_too_large">File too large</string>
+    <string name="uploaded">Uploaded</string>
+
+    <!-- Install App -->
+    <string name="apk_selected">APK selected</string>
+
+    <!-- Location -->
+    <string name="location_perm_rationale">Location permission needed</string>
+
+    <!-- Media Library -->
+    <string name="media_needs_q">Media needs Android Q+</string>
+    <string name="media_count">%1$d items</string>
+    <string name="media_open_failed">Failed to open</string>
+    <string name="media_playing">Playing…</string>
+    <string name="media_stop_hint">Stop</string>
+    <string name="media_delete_confirm">Delete this item?</string>
+    <string name="delete">Delete</string>
+    <string name="media_deleted">Deleted</string>
+    <string name="media_delete_failed">Delete failed</string>
+
+    <!-- Mic -->
+    <string name="audio_saved">Audio saved</string>
+
+    <!-- Play Audio -->
+    <string name="audio_stop_failed">Failed to stop audio</string>
+
+    <!-- Process Adapter -->
+    <string name="cat_app">App</string>
+    <string name="cat_bg">Background</string>
+    <string name="size_mb">%1$.1f MB</string>
+    <string name="meta_cpu">CPU: %1$.1f%%</string>
+    <string name="meta_net">Net: %1$s</string>
+
+    <!-- Processes -->
+    <string name="processes_count">%1$d processes</string>
+    <string name="killed">Killed</string>
+    <string name="kill_failed">Kill failed</string>
+
+    <!-- Run App -->
+    <string name="app_running">App launched</string>
+    <string name="run_failed">Run failed</string>
+
+    <!-- Services -->
+    <string name="services_count">%1$d services</string>
+    <string name="svc_auto">Auto</string>
+    <string name="svc_manual">Manual</string>
+    <string name="svc_disabled">Disabled</string>
+    <string name="svc_actions">Actions</string>
+    <string name="svc_action_failed">Action failed</string>
+
+    <!-- Shell -->
+    <string name="shell_banner">Mimo Shell - Type commands</string>
+    <string name="shell_no_suggestion">No suggestions</string>
+    <string name="shell_elapsed">%1$s elapsed</string>
+    <string name="no_output">(no output)</string>
+    <string name="shell_history_empty">History empty</string>
+
+    <!-- Transfer Files -->
+    <string name="files_selected">%1$d files selected</string>
+    <string name="transferring">Transferring…</string>
+    <string name="transfer_failed">Transfer failed</string>
+    <string name="transfer_complete">Transfer complete</string>
+    <string name="transfer_stopped">Transfer stopped</string>
+
+    <!-- Icons/Drawables references -->
+    <string name="ic_key">ic_key</string>
+    <string name="ic_location">ic_location</string>
+    <string name="ic_power">ic_power</string>
+    <string name="ic_cookie">ic_cookie</string>
+</resources>

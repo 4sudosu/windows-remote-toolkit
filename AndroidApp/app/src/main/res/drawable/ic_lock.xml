@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Padlock — used on the unlock dialog. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2C9.24,2 7,4.24 7,7L7,9L6,9C4.9,9 4,9.9 4,11L4,19C4,20.1 4.9,21 6,21L18,21C19.1,21 20,20.1 20,19L20,11C20,9.9 19.1,9 18,9L17,9L17,7C17,4.24 14.76,2 12,2ZM9,7C9,5.34 10.34,4 12,4C13.66,4 15,5.34 15,7L15,9L9,9L9,7ZM13.25,14.55C13.66,14.31 13.9,13.87 13.9,13.4C13.9,12.67 13.31,12.08 12.58,12.08C11.85,12.08 11.26,12.67 11.26,13.4C11.26,13.87 11.5,14.31 11.91,14.55L11.4,16.9C11.36,17.09 11.51,17.27 11.7,17.27L12.46,17.27C12.65,17.27 12.8,17.09 12.76,16.9L12.4,14.55L13.25,14.55Z" />
+</vector>

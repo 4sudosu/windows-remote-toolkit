@@ -1,0 +1,147 @@
+<Window x:Class="MimoSetup.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mimo Pro Setup"
+        Width="680" Height="720"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None" ResizeMode="NoResize"
+        AllowsTransparency="True" Background="Transparent"
+        FontFamily="Segoe UI" Foreground="#F5F7FF"
+        MouseLeftButtonDown="Window_DragMove">
+
+  <Border CornerRadius="18" BorderBrush="#26324E" BorderThickness="1">
+    <Border.Background>
+      <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+        <GradientStop Color="#0B1428" Offset="0"/>
+        <GradientStop Color="#0A1226" Offset="0.55"/>
+        <GradientStop Color="#05070D" Offset="1"/>
+      </LinearGradientBrush>
+    </Border.Background>
+
+    <Grid>
+      <!-- Ambient glows -->
+      <Ellipse Width="520" Height="420" Opacity="0.10" IsHitTestVisible="False" Margin="-120,-140,0,0">
+        <Ellipse.Fill>
+          <RadialGradientBrush><GradientStop Color="#0A84FF"/><GradientStop Color="#000A84FF" Offset="1"/></RadialGradientBrush>
+        </Ellipse.Fill>
+      </Ellipse>
+      <Ellipse Width="480" Height="380" Opacity="0.08" IsHitTestVisible="False" Margin="0,0,-140,-160">
+        <Ellipse.Fill>
+          <RadialGradientBrush><GradientStop Color="#64D2FF"/><GradientStop Color="#0064D2FF" Offset="1"/></RadialGradientBrush>
+        </Ellipse.Fill>
+      </Ellipse>
+
+      <ScrollViewer VerticalScrollBarVisibility="Hidden" Padding="0">
+        <StackPanel Margin="36,30,36,26">
+
+          <!-- Brand -->
+          <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+            <Border Width="58" Height="58" CornerRadius="16" VerticalAlignment="Center">
+              <Border.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                  <GradientStop Color="#7DD3FC" Offset="0"/>
+                  <GradientStop Color="#0A84FF" Offset="0.55"/>
+                  <GradientStop Color="#0055D4" Offset="1"/>
+                </LinearGradientBrush>
+              </Border.Background>
+              <TextBlock Text="M" FontSize="30" FontWeight="Bold" Foreground="White"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <StackPanel Margin="14,0,0,0" VerticalAlignment="Center">
+              <TextBlock Text="Mimo Pro" FontSize="24" FontWeight="Bold" Foreground="#F5F7FF"/>
+              <TextBlock Text="Windows service installer" FontSize="12" Foreground="#8A96B8" Margin="0,2,0,0"/>
+            </StackPanel>
+          </StackPanel>
+
+          <!-- ============ FORM STATE ============ -->
+          <StackPanel x:Name="FormPanel" Margin="0,26,0,0">
+
+            <TextBlock Text="SERVER" FontSize="10" FontWeight="SemiBold" Foreground="#8A96B8" Margin="2,0,0,6"/>
+            <Border Style="{StaticResource FieldWrap}">
+              <TextBox x:Name="ServerBox" Style="{StaticResource FieldInput}" Text="mimo-pro.onrender.com"/>
+            </Border>
+
+            <Grid Margin="0,16,0,0">
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="14"/>
+                <ColumnDefinition Width="*"/>
+              </Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="PORT  ·  443 = SECURE wss://" FontSize="10" FontWeight="SemiBold" Foreground="#8A96B8" Margin="2,0,0,6"/>
+                <Border Style="{StaticResource FieldWrap}">
+                  <TextBox x:Name="PortBox" Style="{StaticResource FieldInput}" Text="443"/>
+                </Border>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="SERVICE NAME" FontSize="10" FontWeight="SemiBold" Foreground="#8A96B8" Margin="2,0,0,6"/>
+                <Border Style="{StaticResource FieldWrap}">
+                  <TextBox x:Name="ServiceBox" Style="{StaticResource FieldInput}" Text="MimoPro"/>
+                </Border>
+              </StackPanel>
+            </Grid>
+
+            <TextBlock Text="AGENT TOKEN  ·  OPTIONAL" FontSize="10" FontWeight="SemiBold" Foreground="#8A96B8" Margin="2,16,0,6"/>
+            <Border Style="{StaticResource FieldWrap}">
+              <TextBox x:Name="TokenBox" Style="{StaticResource FieldInput}" Text=""/>
+            </Border>
+
+            <TextBlock Text="INSTALL LOCATION" FontSize="10" FontWeight="SemiBold" Foreground="#8A96B8" Margin="2,16,0,6"/>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <Border Grid.Column="0" Style="{StaticResource FieldWrap}">
+                <TextBox x:Name="FolderBox" Style="{StaticResource FieldInput}" Text="C:\Program Files\Mimo Pro"/>
+              </Border>
+              <Button Grid.Column="2" x:Name="BrowseBtn" Content="Browse…" Style="{StaticResource GhostButton}"
+                      Width="92" Height="44" VerticalAlignment="Stretch" Margin="0,0,0,0"
+                      Click="Browse_Click"/>
+            </Grid>
+
+            <Button x:Name="InstallBtn" Content="Install Mimo Pro"
+                    Style="{StaticResource PrimaryButton}" Height="48" Margin="0,24,0,0"
+                    Click="Install_Click"/>
+
+            <ProgressBar x:Name="Progress" Height="6" Margin="0,14,0,0"
+                         Minimum="0" Maximum="100" IsIndeterminate="False"
+                         Style="{StaticResource RoundedProgress}" Visibility="Collapsed"/>
+            <TextBlock x:Name="StatusText" Text="" FontSize="11.5" Foreground="#8A96B8"
+                       Margin="2,10,0,0" TextWrapping="Wrap"/>
+
+            <TextBlock Text="Runs as administrator · writes agent.config.json locked to SYSTEM and Administrators"
+                       FontSize="10" Foreground="#5C6885" Margin="2,22,0,4" TextWrapping="Wrap"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- ============ RESULT STATE ============ -->
+          <StackPanel x:Name="ResultPanel" Visibility="Collapsed" Margin="0,30,0,4">
+            <Border Width="64" Height="64" CornerRadius="32" HorizontalAlignment="Center"
+                    x:Name="ResultIconBorder">
+              <Border.Background>
+                <SolidColorBrush Color="#30D158"/>
+              </Border.Background>
+              <TextBlock x:Name="ResultIcon" Text="✓" FontSize="30" FontWeight="Bold" Foreground="White"
+                         HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <TextBlock x:Name="ResultTitle" Text="Mimo Pro is installed and running"
+                       FontSize="18" FontWeight="Bold" Foreground="#F5F7FF"
+                       HorizontalAlignment="Center" Margin="0,18,0,0"/>
+            <TextBlock x:Name="ResultDetail" Text="" FontSize="12" Foreground="#8A96B8"
+                       HorizontalAlignment="Center" Margin="0,8,0,0" TextWrapping="Wrap"
+                       MaxWidth="480" TextAlignment="Center"/>
+            <Button x:Name="CloseResultBtn" Content="Close"
+                    Style="{StaticResource PrimaryButton}" Height="44" Margin="0,26,0,0"
+                    Click="CloseResult_Click"/>
+          </StackPanel>
+
+          <TextBlock Text="v1.0.0.2  ·  Mimo Pro agent connects to your server and reports secure telemetry"
+                     FontSize="10" Foreground="#3D4661" HorizontalAlignment="Center" Margin="0,18,0,0"/>
+
+        </StackPanel>
+      </ScrollViewer>
+    </Grid>
+  </Border>
+</Window>

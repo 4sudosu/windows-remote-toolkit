@@ -13,6 +13,8 @@ public class AgentClient
 
     private ClientWebSocket? _ws;
     private int _reconnectDelaySec;
+    private long _lastInboundMs;
+    private bool _silenceForced;
 
     public event Action<string>? Log;
 
@@ -59,6 +61,8 @@ public class AgentClient
                 _ws.Options.KeepAliveInterval = TimeSpan.FromSeconds(15);
                 await _ws.ConnectAsync(uri, _cts.Token);
                 _reconnectDelaySec = _config.ReconnectDelaySec;
+                Interlocked.Exchange(ref _lastInboundMs, Environment.TickCount64);
+                _silenceForced = false;
                 LogLine($"Connected to {uri.Host}:{uri.Port}");
 
                 await SendAsync(new
@@ -95,7 +99,7 @@ public class AgentClient
             }
             catch (Exception ex)
             {
-                LogLine($"Connection error: {ex.Message}");
+                LogLine(_silenceForced ? $"Connection was silent — reconnecting." : $"Connection error: {ex.Message}");
             }
 
             _reconnectDelaySec = Math.Min(30, Math.Max(1, _reconnectDelaySec) + 3);
@@ -106,6 +110,12 @@ public class AgentClient
 
     private async Task KeepAliveLoopAsync(int intervalSec, CancellationToken ct)
     {
+        // Silence watchdog: the server echoes every keepalive. If we hear
+        // nothing back for 3 intervals the connection is a zombie (proxy kept
+        // the TCP half-open while the backend was recycled) — force a drop so
+        // the outer loop reconnects and re-registers instead of staying
+        // "connected" forever while the server shows us offline.
+        var silenceLimitMs = Math.Max(45, intervalSec * 3) * 1000L;
         while (!ct.IsCancellationRequested)
         {
             try { await Task.Delay(intervalSec * 1000, ct); } catch { return; }
@@ -113,13 +123,24 @@ public class AgentClient
             {
                 await SendAsync(new { type = "keepalive", at = DateTimeOffset.UtcNow.ToUnixTimeSeconds() });
             }
-            catch
+            catch (Exception ex)
             {
+                LogLine($"Keepalive send failed: {ex.Message}");
+                try { _ws?.Dispose(); } catch { }
+                return;
+            }
+            var silent = Environment.TickCount64 - Volatile.Read(ref _lastInboundMs);
+            if (silent > silenceLimitMs)
+            {
+                _silenceForced = true;
+                LogLine($"No server response for {silent / 1000}s — forcing reconnect.");
                 try { _ws?.Dispose(); } catch { }
                 return;
             }
         }
     }
+
+    private void NoteInbound() => Interlocked.Exchange(ref _lastInboundMs, Environment.TickCount64);
 
     private async Task ReceiveLoopAsync()
     {
@@ -135,6 +156,8 @@ public class AgentClient
                     result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), _cts.Token);
                     ms.Write(buffer, 0, result.Count);
                 } while (!result.EndOfMessage);
+
+                NoteInbound();
 
                 if (result.MessageType == WebSocketMessageType.Close)
                 {

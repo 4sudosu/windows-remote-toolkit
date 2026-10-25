@@ -6,12 +6,12 @@
     android:background="@drawable/bg_dialog"
     android:padding="26dp">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+    <ImageView
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_gravity="center_horizontal"
-        android:text="🔐"
-        android:textSize="36sp" />
+        android:contentDescription="@string/unlock_title"
+        android:src="@drawable/ic_lock" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -60,104 +60,19 @@
         android:textSize="15sp"
         android:textStyle="bold" />
 
-    <TextView
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
         android:layout_marginTop="24dp"
-        android:letterSpacing="0.12"
-        android:text="@string/unlock_connect_owner"
-        android:textColor="#64748B"
-        android:textSize="11sp"
-        android:textStyle="bold" />
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="4dp"
-        android:text="@string/app_footer"
-        android:textColor="#22D3EE"
-        android:textSize="13sp" />
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
         android:orientation="horizontal">
 
-        <Button
-            android:id="@+id/btnTelegram"
-            android:layout_width="0dp"
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/bg_btn_bordered"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:text="@string/unlock_telegram"
-            android:textAllCaps="false"
-            android:textColor="#E2E8F0"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnInstagram"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_btn_bordered"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:text="@string/unlock_instagram"
-            android:textAllCaps="false"
-            android:textColor="#E2E8F0"
-            android:textSize="13sp"
-            android:textStyle="bold" />
+            android:layout_gravity="center_horizontal"
+            android:gravity="center"
+            android:text="@string/unlock_protected"
+            android:textColor="#475569"
+            android:textSize="10sp" />
     </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="10dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btnGitHub"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:background="@drawable/bg_btn_bordered"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:text="@string/unlock_github"
-            android:textAllCaps="false"
-            android:textColor="#E2E8F0"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-
-        <Button
-            android:id="@+id/btnGmail"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="10dp"
-            android:layout_weight="1"
-            android:background="@drawable/bg_btn_bordered"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
-            android:text="@string/unlock_gmail"
-            android:textAllCaps="false"
-            android:textColor="#E2E8F0"
-            android:textSize="13sp"
-            android:textStyle="bold" />
-    </LinearLayout>
-
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_horizontal"
-        android:layout_marginTop="18dp"
-        android:text="@string/unlock_protected"
-        android:textColor="#475569"
-        android:textSize="10sp" />
 </LinearLayout>

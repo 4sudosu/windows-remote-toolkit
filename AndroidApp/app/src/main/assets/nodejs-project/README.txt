@@ -2,7 +2,7 @@ This folder is bundled into the APK as the embedded Node.js server.
 
 Before building the APK, install the JS dependencies so they get packaged:
 
-    cd "E:\AI\Runtime Broker\AndroidApp\app\src\main\assets\nodejs-project"
+    cd "E:\AI\Mimo\AndroidApp\app\src\main\assets\nodejs-project"
     npm install
 
 The app runs this server on-device through the nodejs-mobile libnode.so library

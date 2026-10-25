@@ -8,8 +8,10 @@ public class AgentConfig
     public string Token { get; set; } = "";
     public int ReconnectDelaySec { get; set; } = 5;
 
-    /// <summary>Seconds between app-level keepalive frames. 0 disables.</summary>
-    public int KeepAliveSec { get; set; } = 20;
+    /// <summary>Seconds between app-level keepalive frames. 0 disables.
+    /// 8s (not 20s): Render's proxy silently drops WS connections that idle
+    /// ~20s — anything below that keeps the agent permanently online.</summary>
+    public int KeepAliveSec { get; set; } = 8;
 
     public static AgentConfig? Load()
     {

@@ -9,6 +9,23 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.PORT || 3001);
 const SERVER_VERSION = '2.2.0';
 
+// Ring buffer of recent console lines, served at /api/debug/log-recent so
+// remote debugging doesn't need Render dashboard access.
+const LOG_RING = [];
+const _origLog = console.log.bind(console);
+const _origErr = console.error.bind(console);
+function pushLog(kind, args) {
+  try {
+    const line = `${new Date().toISOString()} [${kind}] ${args.map(a => (typeof a === 'string' ? a : JSON.stringify(a))).join(' ')}\n`;
+    LOG_RING.push(line);
+    if (LOG_RING.length > 500) LOG_RING.splice(0, LOG_RING.length - 500);
+  } catch { /* noop */ }
+}
+console.log = (...args) => { pushLog('log', args); _origLog(...args); };
+console.error = (...args) => { pushLog('err', args); _origErr(...args); };
+process.on('uncaughtException', (err) => { pushLog('uncaught', [String(err && err.stack || err)]); });
+process.on('unhandledRejection', (err) => { pushLog('unhandled', [String(err && err.stack || err)]); });
+
 const APP_DIR = __dirname;
 const AGENTS_FILE = path.join(APP_DIR, 'agents.json');
 const CONFIG_FILE = path.join(APP_DIR, 'server.config.json');
@@ -241,6 +258,14 @@ app.get('/api/version', (_req, res) => {
     agents: agents.size
   });
 });
+// Recent server console lines for remote debugging (admin password required).
+app.get('/api/debug/log-recent', (req, res) => {
+  const headerPassword = String(req.headers['x-admin-password'] || '');
+  if (!ADMIN_PASSWORD || headerPassword !== ADMIN_PASSWORD) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+  res.type('text/plain').send(LOG_RING.join(''));
+});
 app.use(requireAuth);
 
 // ── SSE events (live device notifications) ─────────────────────────────
@@ -359,6 +384,15 @@ function handleMessage(ws, msg) {
         pending.delete(msg.taskId);
         task.resolve(msg);
       }
+      break;
+    }
+    case 'keepalive': {
+      // Echo the app-level keepalive so the agent's silence watchdog can
+      // tell a live server from a zombie half-open socket (this is what
+      // made agents show "offline" while Windows still reported connected).
+      const rec = agents.get(ws.machineName);
+      if (rec) rec.lastSeen = Date.now();
+      try { ws.send(JSON.stringify({ type: 'keepalive', at: Date.now() })); } catch { /* noop */ }
       break;
     }
   }
@@ -559,7 +593,8 @@ liveWss.on('connection', (ws, req, machineName, url) => {
     try { msg = JSON.parse(data.toString()); } catch { return; }
     if (msg.type === 'mouse') {
       sendTask(agent, 'input_mouse', {
-        x: Number(msg.x), y: Number(msg.y), action: String(msg.action || 'move')
+        x: Number(msg.x), y: Number(msg.y), action: String(msg.action || 'move'),
+        ...(msg.action === 'wheel' ? { delta: Number(msg.delta || 0) } : {})
       }, 5000).catch(() => {});
     }
   });

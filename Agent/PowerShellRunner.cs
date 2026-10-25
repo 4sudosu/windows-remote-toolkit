@@ -22,7 +22,7 @@ public static class PowerShellRunner
     {
         var id = Guid.NewGuid().ToString("N")[..10];
         var dir = CaptureWorkDir();
-        var taskName = $"RuntimeBrokerCapture{id}";
+        var taskName = $"MimoProCapture{id}";
         var snapshot = ResultFilesSnapshot(dir);
         try
         {
@@ -32,7 +32,7 @@ public static class PowerShellRunner
                 return (null, "No interactive user is logged on");
             var taskXml = Path.Combine(dir, $"t-{id}.xml");
             var args = $"--capture \"{outFile}\" {format} {quality} {maxWidth}";
-            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, args, "RuntimeBroker interactive screen capture"), Encoding.Unicode);
+            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, args, "Mimo Pro interactive screen capture"), Encoding.Unicode);
 
             var create = SchTasks($"/Create /TN \"{taskName}\" /XML \"{taskXml}\" /F");
             if (create.ExitCode != 0)
@@ -79,14 +79,14 @@ public static class PowerShellRunner
     {
         var id = Guid.NewGuid().ToString("N")[..10];
         var dir = CaptureWorkDir();
-        var taskName = $"RuntimeBrokerRun{id}";
+        var taskName = $"MimoProRun{id}";
         try
         {
             Directory.CreateDirectory(dir);
             if (!TryInteractiveUser(out var user))
                 return (false, "No interactive user is logged on");
             var taskXml = Path.Combine(dir, $"t-{id}.xml");
-            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, args, "RuntimeBroker interactive action"), Encoding.Unicode);
+            File.WriteAllText(taskXml, BuildTaskXml(user, taskName, args, "Mimo Pro interactive action"), Encoding.Unicode);
 
             if (SchTasks($"/Create /TN \"{taskName}\" /XML \"{taskXml}\" /F").ExitCode != 0)
                 return (false, "Failed to create interactive task");
@@ -116,8 +116,8 @@ public static class PowerShellRunner
         }
     }
 
-    private const string AudioTaskName = "RuntimeBrokerAudio";
-    private const string InputTaskName = "RuntimeBrokerInput";
+    private const string AudioTaskName = "MimoProAudio";
+    private const string InputTaskName = "MimoProInput";
 
     /// <summary>
     /// Runs an --input-* one-shot in the user session and waits for it.
@@ -144,7 +144,7 @@ public static class PowerShellRunner
             var taskXml = Path.Combine(dir, "t-input.xml");
             File.WriteAllText(taskXml, BuildTaskXml(user, InputTaskName,
                 $"--input-paragraph {wpm} {(addEnter ? 1 : 0)} \"{textFile}\"",
-                "RuntimeBroker paragraph typing"),
+                "Mimo Pro paragraph typing"),
                 System.Text.Encoding.Unicode);
             if (SchTasks($"/Create /TN \"{InputTaskName}\" /XML \"{taskXml}\" /F").ExitCode != 0)
                 return (false, "Failed to create input task");
@@ -182,7 +182,7 @@ public static class PowerShellRunner
             try { SchTasks($"/Delete /TN \"{AudioTaskName}\" /F"); } catch { }
             var taskXml = Path.Combine(dir, "t-audio.xml");
             File.WriteAllText(taskXml, BuildTaskXml(user, AudioTaskName,
-                $"--play \"{audioFile}\"", "RuntimeBroker audio playback"),
+                $"--play \"{audioFile}\"", "Mimo Pro audio playback"),
                 System.Text.Encoding.Unicode);
             if (SchTasks($"/Create /TN \"{AudioTaskName}\" /XML \"{taskXml}\" /F").ExitCode != 0)
                 return (false, "Failed to create audio task");
@@ -224,7 +224,7 @@ public static class PowerShellRunner
     /// </summary>
     internal static string CaptureWorkDir()
     {
-        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp", "RuntimeBroker");
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "Temp", "MimoPro");
         Directory.CreateDirectory(dir);
         try
         {

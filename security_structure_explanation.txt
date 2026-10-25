@@ -1,0 +1,308 @@
+================================================================================
+WINSYSMONITOR SECURITY ARCHITECTURE - COMPLETE EXPLANATION
+================================================================================
+
+OVERVIEW
+--------
+WinSysMonitor implements a three-layer security model:
+1. Dashboard Authentication (Admin/Owner access)
+2. Device/Agent Authentication (Remote machine access)
+3. WebSocket Transport Security (Real-time communication)
+
+================================================================================
+LAYER 1: DASHBOARD AUTHENTICATION (ADMIN ACCESS)
+================================================================================
+
+PURPOSE
+-------
+Protects the web dashboard and administrative APIs from unauthorized access.
+Only the system owner (who knows the admin password) can access monitoring
+features, capture screenshots, shutdown server, manage blocked devices.
+
+IMPLEMENTATION (server.js)
+--------------------------
+
+A. Password Storage
+   - Primary: Environment variable ADMIN_PASSWORD
+   - Fallback: server.config.json file (written by Android app)
+   - Default: 'Alok@1234' (hardcoded fallback)
+   - Loaded at startup via loadAdminPassword() function (lines 15-29)
+
+B. Brute-Force Protection
+   - MAX_LOGIN_ATTEMPTS = 3 (line 32)
+   - In-memory counter: failedLoginCount (line 33)
+   - Lock flag: loginLocked (line 34)
+   - After 3 failures: Server locks permanently until process restart
+   - Implemented in /api/login endpoint (lines 163-189)
+
+C. Session Management
+   - SESSION_SECRET: 32-byte random hex (line 46) - regenerated on restart
+   - SESSION_TTL: 7 days (line 47)
+   - SESSION_COOKIE: 'wsm_auth' (line 48)
+   - Sessions stored in Map: token -> expiry timestamp (line 49)
+   - signSession() creates token, stores with expiry (lines 102-106)
+   - isAuthed() validates cookie OR X-Admin-Password header (lines 107-117)
+
+D. Authentication Middleware
+   - requireAuth(req, res, next) (lines 118-124)
+   - Checks isAuthed(req)
+   - For API routes: returns 401 JSON
+   - For dashboard routes: redirects to /login
+   - Applied via app.use(requireAuth) at line 233
+
+E. Login Endpoint (/api/login)
+   - POST with JSON {password}
+   - Checks loginLocked first (returns 423 if locked)
+   - Compares password with ADMIN_PASSWORD
+   - On failure: increments counter, returns 403 with attemptsLeft
+   - On success: resets counter, creates session, sets HttpOnly cookie
+   - Cookie: Path=/; HttpOnly; Max-Age=604800 (7 days)
+
+F. Logout Endpoint (/api/logout)
+   - POST, deletes session from Map
+   - Clears cookie with Max-Age=0
+
+CLIENT IMPLEMENTATION (dashboard/login.html)
+--------------------------------------------
+- Simple form with password input
+- POST to /api/login
+- Handles 403 (shows attempts left), 423 (locked), 200 (redirect to /)
+- No password stored client-side
+
+CLIENT AUTH HANDLING (dashboard/app.js)
+---------------------------------------
+- handleAuthResponse(r): checks for 401, redirects to /login (lines 551-554)
+- All fetch calls wrap response with this check
+- Logout button calls /api/logout then redirects to /login
+
+================================================================================
+LAYER 2: DEVICE/AGENT AUTHENTICATION
+================================================================================
+
+PURPOSE
+-------
+Authenticates remote agents (monitored machines) connecting to the server.
+Prevents unauthorized devices from registering and receiving commands.
+Implements device-level brute-force protection with permanent blocking.
+
+IMPLEMENTATION (server.js)
+--------------------------
+
+A. Device Identification
+   - Header: X-Device-Id (unique per agent installation)
+   - Header: X-Admin-Password (same admin password as dashboard)
+
+B. Blocked Device Storage
+   - File: blocked_devices.json (line 37)
+   - Structure: { deviceId: { attempts: N, locked: boolean, lockedAt: timestamp } }
+   - Read: readBlockedDevices() (lines 56-59)
+   - Write: writeBlockedDevices() (lines 61-64)
+
+C. Block Checking
+   - isDeviceBlocked(deviceId) (lines 66-73)
+   - Returns true if entry exists AND locked=true
+   - PERMANENT lock (LOCKOUT_DURATION_MS = 0, line 54)
+
+D. Failed Attempt Recording
+   - recordFailedAttempt(deviceId) (lines 75-90)
+   - Increments attempts counter
+   - At MAX_DEVICE_ATTEMPTS (3): sets locked=true, lockedAt=Date.now()
+   - Persists to file immediately
+
+E. Manual Unlock
+   - unlockDevice(deviceId) (lines 92-96): deletes entry from file
+   - Admin API: POST /api/admin/unlock-device {deviceId}
+
+F. Public Config Endpoint (/api/config) - Device Auth Check
+   - Lines 201-224
+   - Called by agents BEFORE registration to get server config
+   - Checks deviceId + adminPass headers
+   - If blocked: returns deviceBlocked=true, unlockAt=0
+   - If wrong password: calls recordFailedAttempt(), returns authError=true
+   - If correct: returns authError=false, deviceBlocked=false
+   - THIS ENDPOINT IS PUBLIC (before requireAuth middleware)
+
+G. Device Status Endpoint (/api/device-status)
+   - Line 226-230
+   - Returns {deviceBlocked: boolean} for given deviceId
+
+ADMIN API FOR BLOCKED DEVICES
+-----------------------------
+- GET /api/admin/blocked-devices: returns all blocked devices
+- POST /api/admin/unlock-device: unlock specific device
+- POST /api/admin/record-failed-attempt: manually record attempt (testing)
+
+CLIENT IMPLEMENTATION (dashboard/app.js)
+----------------------------------------
+- loadBlockedDevices(): fetches /api/admin/blocked-devices, renders table
+- unlockDevice(deviceId): POST to /api/admin/unlock-device, refreshes list
+- startBlockedDevicesPolling(): refreshes every 10 seconds
+
+================================================================================
+LAYER 3: WEBSOCKET TRANSPORT SECURITY
+================================================================================
+
+PURPOSE
+-------
+Secures real-time communication between server and registered agents.
+Uses token-based authentication established during agent registration flow.
+
+IMPLEMENTATION (server.js)
+--------------------------
+
+A. Connection Endpoint
+   - WebSocketServer at /ws/agent (line 240)
+   - Path: '/ws/agent'
+
+B. Token Validation
+   - On connection: extracts token from query string ?token=xxx (lines 267-268)
+   - If no token: closes with code 4001 'Unauthorized' (lines 269-271)
+   - Token validated implicitly by agent registration flow
+
+C. Agent Registration Flow
+   1. Agent calls HTTP /api/config with deviceId + adminPass
+   2. Server validates, returns config + authError=false
+   3. Agent connects to WS with token (generated during registration)
+   4. Server accepts, agent sends 'register' message with machine info
+   5. Server stores in agents Map, broadcasts 'agent-online' via SSE
+
+D. Heartbeat/Keepalive
+   - 30-second interval (line 435)
+   - Ping/pong to detect dead connections
+   - isAlive flag on WebSocket
+   - Terminates stale connections, removes from agents Map
+
+E. Message Handling
+   - 'keepalive': responds with 'keepalive_ack'
+   - 'register': stores agent info, updates registry file
+   - 'result': resolves pending HTTP->WS command promises
+
+================================================================================
+SECURITY DATA FLOWS
+================================================================================
+
+FLOW 1: ADMIN LOGIN
+-------------------
+1. User opens dashboard -> served login.html (public)
+2. User submits password -> POST /api/login
+3. Server validates -> sets HttpOnly cookie + returns 200
+4. Browser redirects to / -> requireAuth passes -> serves dashboard
+5. Subsequent API calls include cookie automatically
+
+FLOW 2: AGENT CONNECTION
+------------------------
+1. Agent starts -> reads stored deviceId + adminPassword
+2. Agent calls GET /api/config with headers X-Device-Id, X-Admin-Password
+3. Server checks blocked_devices.json
+   - If blocked: returns deviceBlocked=true -> agent stops
+   - If wrong password: increments attempts, may block -> agent retries
+   - If correct: returns config + authError=false
+4. Agent connects WS /ws/agent?token=<from_config>
+5. Agent sends 'register' message
+6. Server adds to agents Map, persists to agents.json
+7. Dashboard receives SSE 'agent-online', updates UI
+
+FLOW 3: SCREENSHOT CAPTURE
+--------------------------
+1. Admin clicks "Capture" on device in dashboard
+2. Dashboard POST /api/monitor/:machineName/screenshot (with session cookie)
+3. requireAuth validates admin session
+4. Server finds agent in Map, sends WS 'capture_screenshot' with taskId
+5. Agent captures screen, sends WS 'result' with taskId + base64 image
+6. Server resolves promise, returns image to dashboard
+
+================================================================================
+KEY SECURITY PROPERTIES
+================================================================================
+
+1. SEPARATION OF CONCERNS
+   - Admin auth (cookies) separate from Device auth (headers)
+   - Public endpoints for device probing (/api/config, /api/device-status)
+   - Protected endpoints for admin actions (all others via requireAuth)
+
+2. DEFENSE IN DEPTH
+   - Brute-force protection on BOTH admin login AND device auth
+   - Permanent lockout after 3 failures (requires manual intervention)
+   - HttpOnly cookies prevent XSS token theft
+   - Random session tokens (32 bytes) prevent guessing
+
+3. STATE MANAGEMENT
+   - Admin sessions: in-memory Map (cleared on restart)
+   - Device blocks: persisted to JSON file (survives restart)
+   - Agent registry: persisted to agents.json (survives restart)
+   - WebSocket connections: in-memory Map (cleared on restart)
+
+4. NO PASSWORD STORAGE ON CLIENTS
+   - Dashboard: password never stored, only session cookie
+   - Android app: stores admin password locally (encrypted by OS)
+   - Agents: store admin password + deviceId for auto-reconnect
+
+5. TRANSPORT SECURITY NOTES
+   - Currently HTTP/WS (not HTTPS/WSS) - designed for local network
+   - For production: deploy behind TLS-terminating reverse proxy
+   - HttpOnly cookie requires Secure flag for HTTPS (add when enabling TLS)
+
+================================================================================
+REPLICATION CHECKLIST FOR NEW PROJECT
+================================================================================
+
+CORE MODULES TO COPY/ADAPT:
+---------------------------
+[ ] Password loading (env + config file + default)
+[ ] Brute-force counter + lockout (admin + device)
+[ ] Session token generation + validation (Map-based)
+[ ] HttpOnly cookie setting + parsing
+[ ] requireAuth middleware (cookie + header support)
+[ ] Device block persistence (JSON file)
+[ ] Public probe endpoint with auth check
+[ ] Admin API for block management
+[ ] WebSocket token validation
+[ ] Agent registration flow
+
+CONFIGURATION NEEDED:
+---------------------
+[ ] ADMIN_PASSWORD environment variable
+[ ] server.config.json schema for password override
+[ ] Blocked devices JSON file path
+[ ] Agents registry JSON file path
+[ ] Session TTL, cookie name, secret length
+[ ] Max attempts for admin and device
+
+CLIENT INTEGRATION:
+-------------------
+[ ] Login page with POST to /api/login
+[ ] Auth response handler (401 -> redirect)
+[ ] Logout function
+[ ] Blocked devices admin UI
+[ ] Agent connection logic (config -> WS -> register)
+
+================================================================================
+FILES REFERENCE
+================================================================================
+
+SERVER (WinSysMonitor/Server/server.js):
+- Lines 12-29: Password loading
+- Lines 30-34: Brute-force config
+- Lines 46-50: Session config
+- Lines 51-100: Device blocking
+- Lines 102-117: Session functions
+- Lines 118-124: requireAuth middleware
+- Lines 163-197: Login/Logout endpoints
+- Lines 201-224: /api/config device auth
+- Lines 226-230: /api/device-status
+- Lines 233: requireAuth applied
+- Lines 240: WebSocket server
+- Lines 266-294: WS connection + token check
+- Lines 296-339: WS message handling
+- Lines 411-432: Admin blocked devices API
+- Lines 435-445: Heartbeat interval
+
+CLIENT (WinSysMonitor/Server/dashboard/):
+- login.html:33-75: Login form + submit logic
+- app.js:551-559: handleAuthResponse, logout
+- app.js:149-210: Blocked devices UI
+- app.js:399-440: Screenshot capture flow
+
+================================================================================
+END OF DOCUMENT
+================================================================================

@@ -1,8 +1,8 @@
 {
-  "name": "runtime-broker-server",
+  "name": "mimo-server",
   "version": "1.0.0",
   "private": true,
-  "description": "Runtime Broker embedded server (runs on-device via nodejs-mobile)",
+  "description": "Mimo embedded server (runs on-device via nodejs-mobile)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

@@ -1,27 +1,62 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Mimo Pro app icon: extruded two-tone "M" monogram with a signal arc.
+     Two gradient faces (light front, dark extrusion) give real depth.
+     108dp viewport; content stays within the 66dp adaptive safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Ambient glow inside the safe zone -->
     <path
-        android:pathData="M54,54 L30,36 M54,54 L78,36 M54,54 L54,82"
-        android:strokeColor="#66FFFFFF"
-        android:strokeWidth="4"
+        android:pathData="M54,58 m-30,0 a30,30 0 1,1 60,0 a30,30 0 1,1 -60,0">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="radial"
+                android:centerX="54"
+                android:centerY="52"
+                android:gradientRadius="32"
+                android:startColor="#400A84FF"
+                android:endColor="#000A84FF" />
+        </aapt:attr>
+    </path>
+
+    <!-- Signal arc behind the monogram -->
+    <path
+        android:pathData="M29,60 A35,35 0 0,1 79,60"
+        android:strokeWidth="4.5"
+        android:strokeColor="#400055D4"
         android:strokeLineCap="round" />
+
+    <!-- Dark extrusion (offset silhouette) -->
     <path
-        android:fillColor="#38BDF8"
-        android:pathData="M30,36 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0" />
+        android:fillColor="#083D85"
+        android:pathData="M38.5,48.5 L48,48.5 L54,58.5 L60,48.5 L69.5,48.5 L69.5,78 L62.5,78 L62.5,62 L54,76.5 L45.5,62 L45.5,78 L38.5,78 Z" />
+
+    <!-- Front face: cyan → blue gradient -->
     <path
-        android:fillColor="#38BDF8"
-        android:pathData="M78,36 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0" />
+        android:pathData="M35,44 L44.5,44 L54,58 L63.5,44 L73,44 L73,73.5 L65,73.5 L65,55.5 L54,72 L43,55.5 L43,73.5 L35,73.5 Z">
+        <aapt:attr xmlns:aapt="http://schemas.android.com/aapt" name="android:fillColor">
+            <gradient
+                android:type="linear"
+                android:startX="35"
+                android:startY="44"
+                android:endX="73"
+                android:endY="74"
+                android:startColor="#7DD3FC"
+                android:centerColor="#38BDF8"
+                android:endColor="#0A84FF" />
+        </aapt:attr>
+    </path>
+
+    <!-- Top-left highlight edge for a machined look -->
     <path
-        android:fillColor="#38BDF8"
-        android:pathData="M54,82 m-7,0 a7,7 0 1,1 14,0 a7,7 0 1,1 -14,0" />
+        android:pathData="M35,44 L44.5,44 L50,52.3 L47,54.8 Z"
+        android:fillColor="#A6E5FFFF" />
+
+    <!-- Signal bead -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,54 m-9,0 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0" />
-    <path
-        android:fillColor="#0F7BFF"
-        android:pathData="M54,54 m-3.5,0 a3.5,3.5 0 1,1 7,0 a3.5,3.5 0 1,1 -7,0" />
+        android:fillColor="#66FFFFFF"
+        android:pathData="M54,33 m-3.2,0 a3.2,3.2 0 1,1 6.4,0 a3.2,3.2 0 1,1 -6.4,0" />
 </vector>

@@ -1,5 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <corners android:radius="16dp" />
-    <solid android:color="@color/surface_container" />
-</shape>
+<!-- Elevated gradient card: lighter top-left, hairline stroke. -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="18dp" />
+            <gradient
+                android:angle="315"
+                android:startColor="#151E36"
+                android:endColor="#0B1222" />
+            <stroke
+                android:width="1dp"
+                android:color="#233050" />
+        </shape>
+    </item>
+</layer-list>

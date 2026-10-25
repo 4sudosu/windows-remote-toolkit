@@ -1,0 +1,17 @@
+<Application x:Class="MimoSetup.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <SolidColorBrush x:Key="TextMain">#F5F7FF</SolidColorBrush>
+            <SolidColorBrush x:Key="TextMuted">#8A96B8</SolidColorBrush>
+            <SolidColorBrush x:Key="FieldBg">#0E1524</SolidColorBrush>
+            <SolidColorBrush x:Key="FieldBorder">#223050</SolidColorBrush>
+            <SolidColorBrush x:Key="Accent">#0A84FF</SolidColorBrush>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

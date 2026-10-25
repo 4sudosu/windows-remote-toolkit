@@ -15,7 +15,7 @@ public class AgentService : ServiceBase
 
     public AgentService()
     {
-        ServiceName = "RuntimeBroker";
+        ServiceName = "MimoPro";
         CanStop = true;
         CanShutdown = true;
         AutoLog = true;
@@ -86,7 +86,7 @@ public class AgentService : ServiceBase
         _client.Log += s => WriteLog(s);
         _ = Task.Run(_client.RunAsync);
 
-        WriteLog($"RuntimeBroker service started (v{AgentVersionInfo.Version}).");
+        WriteLog($"Mimo Pro service started (v{AgentVersionInfo.Version}).");
     }
 
     protected override void OnStop()
@@ -96,7 +96,7 @@ public class AgentService : ServiceBase
         _client = null;
         _watcher?.Dispose();
         _watcher = null;
-        WriteLog("RuntimeBroker service stopped.");
+        WriteLog("Mimo Pro service stopped.");
     }
 
     protected override void OnShutdown()

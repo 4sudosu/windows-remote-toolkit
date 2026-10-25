@@ -1,0 +1,17 @@
+services:
+  # Mimo Pro — Premium Remote Control Server (Express + WebSocket)
+  - type: web
+    name: mimo-pro
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: ADMIN_PASSWORD
+        sync: false          # ← set this in the Render dashboard (keep it secret)
+      - key: AGENT_TOKEN
+        sync: false          # ← optional; empty = any agent may connect
+      - key: NODE_VERSION
+        value: "20"
+      # Render injects PORT automatically on this runtime (served over 443 via TLS).
