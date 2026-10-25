@@ -30,7 +30,18 @@ class LauncherActivity : BaseActivity() {
             NodeServerService.configure(this, NodeServerService.DEFAULT_HOST, NodeServerService.DEFAULT_PORT)
             NodeServerService.start(this)
             val ip = NodeServerService.localIps(this).firstOrNull()
-            Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:${NodeServerService.currentPort(this)}"), Toast.LENGTH_LONG).show()
+            val port = NodeServerService.currentPort(this)
+            Toast.makeText(this, getString(R.string.server_started, "http://${ip ?: "127.0.0.1"}:$port"), Toast.LENGTH_LONG).show()
+            // Open the local dashboard (its login page asks for the admin password).
+            // Node copies assets + boots on first run, so give it a head start.
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                if (NodeServerService.isRunning(this)) {
+                    try {
+                        startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("http://127.0.0.1:$port")))
+                    } catch (_: Exception) {
+                    }
+                }
+            }, 2500)
         }
         updateServerState()
     }

@@ -3,17 +3,24 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mimo</title>
+  <title>Mimo Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app">
     <header class="topbar">
       <div>
-        <div class="brand">Mimo</div>
+        <div class="brand">Mimo Pro</div>
         <div class="subtitle">Connected devices</div>
       </div>
-      <div class="topbar-right"><span id="agentsHeader">Connecting...</span> <button class="btn-muted" onclick="logout()">Logout</button></div>
+      <div class="topbar-right">
+        <nav class="topnav">
+          <button class="navlink active" id="navDevices" onclick="showDevices()">Devices</button>
+          <button class="navlink" id="navBlocked" onclick="showBlocked()">Blocked</button>
+          <button class="navlink" id="navSettings" onclick="showSettings()">Settings</button>
+        </nav>
+        <span id="agentsHeader">Connecting...</span> <button class="btn-muted" onclick="logout()">Logout</button>
+      </div>
     </header>
 
     <main>
@@ -41,43 +48,92 @@
         </div>
 
         <div class="action-grid">
-          <button class="action-card" onclick="openLive()"><span class="action-icon">◉</span><strong>Live Screen</strong><small>Stream the device screen</small></button>
           <button class="action-card" onclick="captureMonitorNow()"><span class="action-icon">▣</span><strong>Screen Capture</strong><small>Take a screenshot</small></button>
-          <button class="action-card" onclick="focusTool('shellCommand')"><span class="action-icon">&gt;_</span><strong>Shell</strong><small>Run administrator commands</small></button>
-          <button class="action-card" onclick="focusTool('textCommand')"><span class="action-icon">T</span><strong>Input Text</strong><small>Type text on the device</small></button>
-          <button class="action-card" onclick="focusTool('paragraphCommand')"><span class="action-icon">¶</span><strong>Input Paragraph</strong><small>Type a paragraph</small></button>
-          <button class="action-card" onclick="runDeviceCommand('list_files',{path:'C:\\Windows\\System32'})"><span class="action-icon">□</span><strong>Files</strong><small>Browse remote files</small></button>
-          <button class="action-card" onclick="runDeviceCommand('list_processes')"><span class="action-icon">▤</span><strong>Processes</strong><small>View running processes</small></button>
-          <button class="action-card" onclick="runDeviceCommand('list_services')"><span class="action-icon">⚙</span><strong>Services</strong><small>View Windows services</small></button>
-          <button class="action-card" onclick="runDeviceCommand('camera_photo')"><span class="action-icon">◌</span><strong>Camera</strong><small>Capture a remote photo</small></button>
-          <button class="action-card" onclick="runDeviceCommand('mic_record',{seconds:10})"><span class="action-icon">●</span><strong>Microphone</strong><small>Record remote audio</small></button>
-          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='play_audio'"><span class="action-icon">▶</span><strong>Play Audio</strong><small>Play audio on the device</small></button>
-          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='transfer_file'"><span class="action-icon">⇄</span><strong>Transfer Files</strong><small>Send a file to the device</small></button>
-          <button class="action-card" onclick="focusTool('commandName');$('commandName').value='screen_rotate'"><span class="action-icon">⟳</span><strong>Screen Control</strong><small>Rotate the remote screen</small></button>
-          <button class="action-card" onclick="focusTool('commandName')"><span class="action-icon">⋮</span><strong>More Controls</strong><small>Advanced device actions</small></button>
+          <button class="action-card" onclick="openLive(false)"><span class="action-icon">◉</span><strong>Live Screen</strong><small>Stream the device screen</small></button>
+          <button class="action-card" onclick="focusTool('textCommand')"><span class="action-icon">T</span><strong>Input</strong><small>Type text or a paragraph</small></button>
+          <button class="action-card" onclick="openLive(true)"><span class="action-icon">➤</span><strong>Cursor Control</strong><small>Move and click the remote mouse</small></button>
         </div>
 
         <div id="toolPanel" class="tool-panel" style="display:none;">
-          <div class="panel-head"><h2>Command Console</h2><button class="icon-button" onclick="clearConsole()" title="Clear output">⌫</button></div>
+          <div class="panel-head"><h2>Input</h2><button class="icon-button" onclick="clearConsole()" title="Clear output">⌫</button></div>
           <div class="console-grid">
-            <select id="commandName" class="search-input console-wide">
-              <option value="shell_exec">Shell command</option><option value="input_text">Input text</option><option value="input_mouse">Mouse input</option><option value="input_paragraph">Input paragraph</option><option value="screen_rotate">Rotate screen</option><option value="list_processes">Processes</option><option value="kill_process">Kill process</option><option value="list_services">Services</option><option value="service_action">Service action</option><option value="list_files">List files</option><option value="read_file">Read file</option><option value="write_file">Write file</option><option value="camera_video">Camera video</option><option value="mic_record">Microphone</option><option value="play_audio">Play audio</option><option value="stop_audio">Stop audio</option><option value="transfer_file">Transfer file</option><option value="stop_typing">Stop typing</option>
-            </select>
-            <button class="btn-primary" onclick="runGenericCommand()">Run</button>
-            <input id="shellCommand" class="search-input console-wide" placeholder="Administrator shell command">
-            <button class="btn-primary" onclick="runShell()">Send</button>
             <input id="textCommand" class="search-input console-wide" placeholder="Text to type">
             <button class="btn-primary" onclick="sendText()">Send</button>
             <textarea id="paragraphCommand" class="search-input console-wide" rows="3" placeholder="Paragraph to type"></textarea>
             <button class="btn-primary" onclick="sendParagraph()">Start</button>
-            <textarea id="commandParams" class="search-input console-wide" rows="2" placeholder="Advanced command parameters as JSON">{"command":"whoami","timeoutSec":120,"admin":true}</textarea>
           </div>
-          <div class="console-actions"><button class="btn-muted" onclick="stopTyping()">Stop Typing</button><button class="btn-muted" onclick="stopAudio()">Stop Audio</button><button class="btn-danger" onclick="stopAll()">Stop Automation</button></div>
+          <div class="console-actions"><button class="btn-muted" onclick="stopTyping()">Stop Typing</button><button class="btn-danger" onclick="stopAll()">Stop Automation</button></div>
           <pre id="consoleOutput" class="console-output"></pre>
         </div>
 
-        <div id="liveWrap" class="live-wrap" style="display:none;"><div class="live-head"><strong>Live Screen</strong><button class="btn-muted" onclick="closeLive()">Close</button></div><img id="liveImg" alt="Live device screen"></div>
-        <div class="capture-panel"><div class="panel-head"><h2>Screen Capture</h2><div><button class="btn-primary" onclick="captureMonitorNow()">Capture</button><button class="btn-muted" onclick="copyMonitorImage()">Copy</button></div></div><div id="monitorCaptureInfo" class="muted">No capture yet</div><img id="monitorImg" style="display:none" alt="Screen capture"></div>
+        <div id="liveWrap" class="live-wrap" style="display:none;"><div class="live-head"><div><strong>Live Screen</strong><span class="muted" id="liveStatus"></span><span class="muted" id="ctrlHint" style="display:none;margin-left:10px">Click = left click · Right-click = right click · Scroll = wheel</span></div><button class="btn-muted" onclick="closeLive()">Close</button></div><img id="liveImg" alt="Live device screen"></div>
+        <div id="capturePanel" class="capture-panel" style="display:none"><div class="panel-head"><h2>Screen Capture</h2><div><button class="btn-primary" onclick="captureMonitorNow()">Capture</button><button class="btn-muted" onclick="copyMonitorImage()">Copy</button></div></div><div id="monitorCaptureInfo" class="muted">No capture yet</div><img id="monitorImg" style="display:none" alt="Screen capture"></div>
+      </section>
+
+      <section id="blockedPage" class="page" style="display:none;">
+        <div class="page-head">
+          <div>
+            <button class="back-button" onclick="showDevices()">← Devices</button>
+            <h1>Blocked Devices</h1>
+            <p class="muted">Devices locked after repeated failed passwords. Unlock them here.</p>
+          </div>
+          <button class="icon-button" onclick="loadBlockedDevices()" title="Refresh">↻</button>
+        </div>
+        <div id="blockedList" class="blocked-list"><div class="muted">Loading…</div></div>
+      </section>
+
+      <section id="settingsPage" class="page" style="display:none;">
+        <div class="page-head">
+          <div>
+            <button class="back-button" onclick="showDevices()">← Devices</button>
+            <h1>Settings</h1>
+            <p class="muted">Personalize the dashboard — everything saves automatically.</p>
+          </div>
+        </div>
+
+        <div class="settings-card">
+          <div class="card-head"><span class="card-icon theme-icon">◐</span><div><h3>Theme</h3><p class="muted" id="themeSubtitle">Pick one of 10 hand-crafted combos — saved automatically.</p></div></div>
+          <div class="theme-grid" id="themeRow"></div>
+        </div>
+
+        <div class="settings-card">
+          <div class="card-head"><span class="card-icon notif-icon">◉</span><div><h3>Notifications</h3><p class="muted">Get alerted the moment a new device comes online.</p></div></div>
+
+          <label class="switch-row">
+            <span class="switch-label"><b>Desktop notifications</b><small>Shows a system toast when any device connects. Requires browser permission.</small></span>
+            <input type="checkbox" id="notifToggle">
+          </label>
+
+          <div class="switch-row">
+            <span class="switch-label"><b>Permission status</b><small id="permStatus">Checking…</small></span>
+            <button class="btn-muted" onclick="requestPerm()">Allow</button>
+          </div>
+
+          <div class="row-inline tone-row">
+            <div class="switch-label" style="flex:1"><b>Notification tone</b><small>Plays with every new-agent alert.</small></div>
+            <select id="toneSelect" class="search-input">
+              <option value="system">System default</option>
+              <option value="chime">Chime</option>
+              <option value="alert">Alert</option>
+              <option value="ding">Ding</option>
+              <option value="soft">Soft</option>
+            </select>
+            <button class="btn-primary" onclick="testTone()">Test</button>
+          </div>
+          <p class="muted tiny-status" id="toneStatus"></p>
+        </div>
+
+        <div class="settings-card">
+          <div class="card-head"><span class="card-icon server-icon">⋮≡</span><div><h3>Server</h3><p class="muted">Where this dashboard is being served from.</p></div></div>
+          <div class="kv-grid">
+            <div><small>Address</small><b id="srvAddress"></b></div>
+            <div><small>Host</small><b id="srvHost"></b></div>
+            <div><small>Port</small><b id="srvPort"></b></div>
+            <div><small>Version</small><b id="srvVersion"></b></div>
+            <div><small>Online devices</small><b id="srvAgents"></b></div>
+            <div><small>Last checked</small><b id="srvChecked">—</b></div>
+          </div>
+        </div>
       </section>
     </main>
   </div>
