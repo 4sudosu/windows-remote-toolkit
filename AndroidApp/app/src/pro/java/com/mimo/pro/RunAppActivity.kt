@@ -52,9 +52,9 @@ class RunAppActivity : BaseActivity() {
             binding.emptyText.visibility = android.view.View.GONE
             
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@RunAppActivity),
+                Connection.resolveBase(this@RunAppActivity),
                 machineName,
-                Prefs.password(this@RunAppActivity),
+                Connection.resolvePassword(this@RunAppActivity),
                 "list_apps",
                 JSONObject()
             )
@@ -93,9 +93,9 @@ class RunAppActivity : BaseActivity() {
         lifecycleScope.launch {
             binding.statusText.text = getString(R.string.app_running, app.label)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@RunAppActivity),
+                Connection.resolveBase(this@RunAppActivity),
                 machineName,
-                Prefs.password(this@RunAppActivity),
+                Connection.resolvePassword(this@RunAppActivity),
                 "run_app",
                 JSONObject().put("packageName", app.packageName)
             )

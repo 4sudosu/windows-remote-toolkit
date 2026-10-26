@@ -90,9 +90,9 @@ class FileManagerActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.loading)
             binding.emptyText.visibility = View.GONE
             val result = RuntimeBrokerApi.listFiles(
-                Prefs.serverUrl(this@FileManagerActivity),
+                Connection.resolveBase(this@FileManagerActivity),
                 machineName,
-                Prefs.password(this@FileManagerActivity),
+                Connection.resolvePassword(this@FileManagerActivity),
                 currentPath
             )
             if (result.success) {
@@ -123,9 +123,9 @@ class FileManagerActivity : BaseActivity() {
         lifecycleScope.launch {
             binding.statusText.text = getString(R.string.downloading)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@FileManagerActivity),
+                Connection.resolveBase(this@FileManagerActivity),
                 machineName,
-                Prefs.password(this@FileManagerActivity),
+                Connection.resolvePassword(this@FileManagerActivity),
                 "read_file",
                 org.json.JSONObject().put("path", entry.path)
             )
@@ -168,9 +168,9 @@ class FileManagerActivity : BaseActivity() {
             val b64 = Base64.encodeToString(bytes, Base64.DEFAULT)
             val target = if (currentPath.endsWith("\\")) currentPath + name else "$currentPath\\$name"
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@FileManagerActivity),
+                Connection.resolveBase(this@FileManagerActivity),
                 machineName,
-                Prefs.password(this@FileManagerActivity),
+                Connection.resolvePassword(this@FileManagerActivity),
                 "write_file",
                 org.json.JSONObject()
                     .put("path", target)

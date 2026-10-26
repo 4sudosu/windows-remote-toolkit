@@ -90,9 +90,9 @@ class InputParagraphActivity : BaseActivity() {
             Toast.makeText(this, getString(R.string.empty_paragraph), Toast.LENGTH_SHORT).show()
             return
         }
-        // Prevent duplicate typing jobs — if already typing, ignore the click
+        // Prevent duplicate typing jobs â€” if already typing, ignore the click
         if (isTyping) return
-        // No word limit — long paragraphs are fine; the ETA scales with length.
+        // No word limit â€” long paragraphs are fine; the ETA scales with length.
         val words = currentWords()
         val wpm = binding.wpmInput.text.toString().toIntOrNull()?.takeIf { it > 0 } ?: 50
         val addEnter = binding.enterCheck.isChecked
@@ -103,9 +103,9 @@ class InputParagraphActivity : BaseActivity() {
             // Button always visible - no visibility toggle needed
             binding.statusText.text = getString(R.string.running)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@InputParagraphActivity),
+                Connection.resolveBase(this@InputParagraphActivity),
                 machineName,
-                Prefs.password(this@InputParagraphActivity),
+                Connection.resolvePassword(this@InputParagraphActivity),
                 "input_paragraph",
                 JSONObject()
                     .put("text", text)
@@ -167,9 +167,9 @@ class InputParagraphActivity : BaseActivity() {
         binding.btnStopTyping.isEnabled = false
         lifecycleScope.launch {
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@InputParagraphActivity),
+                Connection.resolveBase(this@InputParagraphActivity),
                 machineName,
-                Prefs.password(this@InputParagraphActivity),
+                Connection.resolvePassword(this@InputParagraphActivity),
                 "stop_typing",
                 JSONObject()
             )
@@ -189,9 +189,9 @@ class InputParagraphActivity : BaseActivity() {
     }
 
     private fun startLiveView() {
-        val url = Prefs.serverUrl(this)
+        val url = Connection.resolveBase(this)
         if (url.isBlank() || machineName.isBlank()) return
-        ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 1000,
+        ws = RuntimeBrokerApi.connectLive(url, machineName, Connection.resolvePassword(this), 1000,
             object : com.mimo.pro.api.LiveListener {
                 override fun onConnected() {}
 
@@ -272,7 +272,7 @@ class InputParagraphActivity : BaseActivity() {
         livePanY = livePanY.coerceIn(-overY, overY)
     }
 
-    /** Fits the WHOLE agent frame in the preview — correct aspect ratio, no crop. */
+    /** Fits the WHOLE agent frame in the preview â€” correct aspect ratio, no crop. */
     private fun updateLiveMatrix() {
         val bmp = liveBitmap ?: return
         val view = binding.liveImage
@@ -305,12 +305,12 @@ class InputParagraphActivity : BaseActivity() {
     override fun onDestroy() {
         if (isTyping) {
             // lifecycleScope is already DEAD here, so the stop command must go
-            // out through an independent scope — otherwise closing the screen
+            // out through an independent scope â€” otherwise closing the screen
             // leaves the remote paragraph typing forever.
             val app = applicationContext
-            val url = Prefs.serverUrl(app)
+            val url = Connection.resolveBase(app)
             val machine = machineName
-            val pw = Prefs.password(app)
+            val pw = Connection.resolvePassword(app)
             CoroutineScope(Dispatchers.IO).launch {
                 try {
                     if (url.isNotBlank() && machine.isNotBlank()) {

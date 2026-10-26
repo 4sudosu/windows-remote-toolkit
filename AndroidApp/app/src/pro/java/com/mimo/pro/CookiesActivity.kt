@@ -61,8 +61,8 @@ class CookiesActivity : BaseActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = Prefs.serverUrl(this@CookiesActivity)
-                val pw = Prefs.password(this@CookiesActivity)
+                val url = Connection.resolveBase(this@CookiesActivity)
+                val pw = Connection.resolvePassword(this@CookiesActivity)
                 val result = RuntimeBrokerApi.extractCookies(url, machineName, pw)
 
                 runOnUiThread {

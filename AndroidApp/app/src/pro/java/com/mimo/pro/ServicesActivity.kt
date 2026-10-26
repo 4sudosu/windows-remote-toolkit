@@ -66,9 +66,9 @@ class ServicesActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.loading)
             binding.emptyText.visibility = View.GONE
             val result = RuntimeBrokerApi.listServices(
-                Prefs.serverUrl(this@ServicesActivity),
+                Connection.resolveBase(this@ServicesActivity),
                 machineName,
-                Prefs.password(this@ServicesActivity)
+                Connection.resolvePassword(this@ServicesActivity)
             )
             if (result.success) {
                 val arr = result.data as? JSONArray
@@ -104,7 +104,7 @@ class ServicesActivity : BaseActivity() {
         }
         val labels = actions.map { it.first }.toTypedArray()
         AlertDialog.Builder(this)
-            .setTitle(getString(R.string.svc_actions) + " — " + entry.name)
+            .setTitle(getString(R.string.svc_actions) + " â€” " + entry.name)
             .setItems(labels) { _, which ->
                 runAction(entry, actions[which].second, labels[which])
             }
@@ -118,9 +118,9 @@ class ServicesActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.running)
             val timeout = if (action == "restart" || action == "start" || action == "stop") 60 else 30
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@ServicesActivity),
+                Connection.resolveBase(this@ServicesActivity),
                 machineName,
-                Prefs.password(this@ServicesActivity),
+                Connection.resolvePassword(this@ServicesActivity),
                 "service_action",
                 JSONObject().put("name", entry.name).put("action", action).put("timeoutSec", timeout)
             )

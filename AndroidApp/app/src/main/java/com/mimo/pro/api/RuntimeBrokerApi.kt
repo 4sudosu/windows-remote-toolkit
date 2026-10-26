@@ -401,7 +401,7 @@ object RuntimeBrokerApi {
         command(baseUrl, machineName, password, "read_file", JSONObject().put("path", path))
 
     suspend fun writeFile(baseUrl: String, machineName: String, password: String, path: String, content: String): CommandResult =
-        command(baseUrl, machineName, password, "write_file", JSONObject().put("path", path).put("content", content))
+        command(baseUrl, machineName, password, "write_file", JSONObject().put("path", path).put("base64", content))
 
     // Service Control
     suspend fun serviceAction(baseUrl: String, machineName: String, password: String, serviceName: String, action: String): CommandResult =
@@ -417,7 +417,7 @@ object RuntimeBrokerApi {
 
     // Play Audio
     suspend fun playAudio(baseUrl: String, machineName: String, password: String, base64Audio: String): CommandResult =
-        command(baseUrl, machineName, password, "play_audio", JSONObject().put("audio", base64Audio))
+        command(baseUrl, machineName, password, "play_audio", JSONObject().put("base64", base64Audio))
 
     suspend fun stopAudio(baseUrl: String, machineName: String, password: String): CommandResult =
         command(baseUrl, machineName, password, "stop_audio")
@@ -435,5 +435,5 @@ object RuntimeBrokerApi {
 
     // Transfer Files
     suspend fun transferFile(baseUrl: String, machineName: String, password: String, base64File: String, remotePath: String): CommandResult =
-        command(baseUrl, machineName, password, "transfer_file", JSONObject().put("file", base64File).put("path", remotePath))
+        command(baseUrl, machineName, password, "transfer_file", JSONObject().put("base64", base64File).put("filename", remotePath))
 }

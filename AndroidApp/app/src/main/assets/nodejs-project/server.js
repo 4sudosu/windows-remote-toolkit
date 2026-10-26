@@ -179,6 +179,14 @@ wss.on('connection', (ws, req) => {
 
 function handleMessage(ws, msg) {
   switch (msg.type) {
+    case 'keepalive': {
+      // Echo the app-level keepalive so the agent's silence watchdog can tell
+      // a live server from a zombie half-open socket (parity with Render).
+      const rec = agents.get(ws.machineName);
+      if (rec) rec.lastSeen = Date.now();
+      try { ws.send(JSON.stringify({ type: 'keepalive', at: Date.now() })); } catch (e) {}
+      break;
+    }
     case 'register': {
       const machineName = (msg.machineName || '').toLowerCase();
       ws.machineName = machineName;
@@ -309,7 +317,7 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
   const allowed = new Set([
     'shell_exec', 'list_processes', 'kill_process', 'list_services', 'service_action',
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
-    'input_paragraph', 'screen_rotate',
+    'input_paragraph', 'screen_rotate', 'capture_screenshot',
     'camera_photo', 'camera_video', 'mic_record',
     'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all'
   ]);

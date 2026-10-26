@@ -70,9 +70,9 @@ class ShellActivity : BaseActivity() {
         // cmd.exe (C:\Users\Name>).
         initJob = lifecycleScope.launch {
             val result = RuntimeBrokerApi.shell(
-                Prefs.serverUrl(this@ShellActivity),
+                Connection.resolveBase(this@ShellActivity),
                 machineName,
-                Prefs.password(this@ShellActivity),
+                Connection.resolvePassword(this@ShellActivity),
                 "cd /d C:\\Windows\\System32",
                 true
             )
@@ -214,7 +214,7 @@ class ShellActivity : BaseActivity() {
         val command = binding.commandInput.text.toString().trim()
         if (command.isEmpty()) return
 
-        // Local cls — clears this terminal like the real thing.
+        // Local cls â€” clears this terminal like the real thing.
         if (command.equals("cls", ignoreCase = true)) {
             history = StringBuilder()
             binding.outputText.text = ""
@@ -232,7 +232,7 @@ class ShellActivity : BaseActivity() {
 
         // cd changes directory on the remote only for its own process, so we
         // append "& cd" to capture the new working directory and keep the
-        // prompt in sync — exactly how a persistent cmd session would feel.
+        // prompt in sync â€” exactly how a persistent cmd session would feel.
         val isCd = command.lowercase().startsWith("cd")
         val effective = if (isCd && !command.endsWith("&cd", true) && !command.endsWith("& cd", true))
             "$command & cd" else command
@@ -249,9 +249,9 @@ class ShellActivity : BaseActivity() {
                 }
             }
             val result = RuntimeBrokerApi.shell(
-                Prefs.serverUrl(this@ShellActivity),
+                Connection.resolveBase(this@ShellActivity),
                 machineName,
-                Prefs.password(this@ShellActivity),
+                Connection.resolvePassword(this@ShellActivity),
                 effective,
                 true
             )

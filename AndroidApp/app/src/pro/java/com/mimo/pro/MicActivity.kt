@@ -41,9 +41,9 @@ class MicActivity : BaseActivity() {
             binding.btnRecord.isEnabled = false
             binding.statusText.text = getString(R.string.recording)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@MicActivity),
+                Connection.resolveBase(this@MicActivity),
                 machineName,
-                Prefs.password(this@MicActivity),
+                Connection.resolvePassword(this@MicActivity),
                 "mic_record",
                 JSONObject().put("seconds", seconds()).put("timeoutSec", seconds() + 90)
             )

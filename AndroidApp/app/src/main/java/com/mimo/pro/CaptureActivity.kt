@@ -113,13 +113,14 @@ class CaptureActivity : BaseActivity() {
         }
 
         binding.btnCapture.setOnClickListener {
+            android.util.Log.d("MimoConn", "captureNow aiMode=$aiMode machine=$machineName connBase=${Connection.baseUrl} prefsBase=${Prefs.serverUrl(this)} connPwd=${Connection.password?.length} prefsPwdLen=${Prefs.password(this).length}")
             if (aiMode) captureAndAskAi() else captureNow()
         }
         binding.btnSave.setOnClickListener { saveImage() }
         binding.btnCopy.setOnClickListener { copyImage() }
         binding.btnShare.setOnClickListener { shareImage() }
 
-        // ── V2 temp album (Capture and Store → DCIM/Mimo) ──
+        // â”€â”€ V2 temp album (Capture and Store â†’ DCIM/Mimo) â”€â”€
         setupAlbum()
         refreshAlbum()
         setupAiMode()
@@ -141,7 +142,7 @@ class CaptureActivity : BaseActivity() {
         super.onDestroy()
     }
 
-    // ── Gemini AI mode (screenshot share-to-app, no API key) ──────────────
+    // â”€â”€ Gemini AI mode (screenshot share-to-app, no API key) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private fun setupAiMode() {
         binding.etAiPrompt.setText(Prefs.geminiPrompt(this))
         if (!aiMode) {
@@ -191,9 +192,9 @@ class CaptureActivity : BaseActivity() {
                 binding.statusText.text = getString(R.string.capturing)
                 setAiStatus(getString(R.string.gemini_status_capturing))
                 val result = RuntimeBrokerApi.capture(
-                    Prefs.serverUrl(this@CaptureActivity),
+                    Connection.resolveBase(this@CaptureActivity),
                     machineName,
-                    Prefs.password(this@CaptureActivity)
+                    Connection.resolvePassword(this@CaptureActivity)
                 )
                 if (!result.success || result.image.isNullOrBlank()) {
                     val err = result.error ?: "unknown error"
@@ -302,9 +303,9 @@ class CaptureActivity : BaseActivity() {
             binding.btnCapture.isEnabled = false
             binding.statusText.text = getString(R.string.capturing)
             val result = RuntimeBrokerApi.capture(
-                Prefs.serverUrl(this@CaptureActivity),
+                Connection.resolveBase(this@CaptureActivity),
                 machineName,
-                Prefs.password(this@CaptureActivity)
+                Connection.resolvePassword(this@CaptureActivity)
             )
             binding.btnCapture.isEnabled = true
             if (result.success && !result.image.isNullOrBlank()) {
@@ -416,7 +417,7 @@ class CaptureActivity : BaseActivity() {
         Toast.makeText(this, R.string.saved, Toast.LENGTH_SHORT).show()
     }
 
-    // ── V2 temp album (Capture and Store → DCIM/Mimo) ──────────
+    // â”€â”€ V2 temp album (Capture and Store â†’ DCIM/Mimo) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private fun safeMachine(): String =
         machineName.ifBlank { "device" }.replace(Regex("[^A-Za-z0-9_-]"), "_")
 
@@ -527,9 +528,9 @@ class CaptureActivity : BaseActivity() {
         lifecycleScope.launch {
             try {
                 val result = RuntimeBrokerApi.capture(
-                    Prefs.serverUrl(this@CaptureActivity),
+                    Connection.resolveBase(this@CaptureActivity),
                     machineName,
-                    Prefs.password(this@CaptureActivity)
+                    Connection.resolvePassword(this@CaptureActivity)
                 )
                 if (!result.success || result.image.isNullOrBlank()) {
                     binding.statusText.text = getString(
@@ -584,7 +585,7 @@ class CaptureActivity : BaseActivity() {
             return
         }
         try {
-            // MediaStore content URIs are publicly readable — no FileProvider needed.
+            // MediaStore content URIs are publicly readable â€” no FileProvider needed.
             val uris = ArrayList(items.map { it.uri })
             val send = Intent(Intent.ACTION_SEND_MULTIPLE).apply {
                 type = "image/png"

@@ -49,9 +49,9 @@ class CameraActivity : BaseActivity() {
             setBusy(true)
             binding.statusText.text = getString(R.string.capturing_photo)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@CameraActivity),
+                Connection.resolveBase(this@CameraActivity),
                 machineName,
-                Prefs.password(this@CameraActivity),
+                Connection.resolvePassword(this@CameraActivity),
                 "camera_photo",
                 JSONObject().put("timeoutSec", 120)
             )
@@ -78,9 +78,9 @@ class CameraActivity : BaseActivity() {
             setBusy(true)
             binding.statusText.text = getString(R.string.recording)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@CameraActivity),
+                Connection.resolveBase(this@CameraActivity),
                 machineName,
-                Prefs.password(this@CameraActivity),
+                Connection.resolvePassword(this@CameraActivity),
                 "camera_video",
                 JSONObject().put("seconds", seconds()).put("timeoutSec", seconds() + 90)
             )

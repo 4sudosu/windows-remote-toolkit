@@ -33,9 +33,9 @@ class InputTextActivity : BaseActivity() {
             binding.btnSend.isEnabled = false
             binding.statusText.text = getString(R.string.running)
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@InputTextActivity),
+                Connection.resolveBase(this@InputTextActivity),
                 machineName,
-                Prefs.password(this@InputTextActivity),
+                Connection.resolvePassword(this@InputTextActivity),
                 "input_text",
                 org.json.JSONObject().put("text", text)
             )

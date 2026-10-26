@@ -45,6 +45,10 @@ class MainActivity : BaseActivity() {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        // MainActivity is Prefs-based: reset any Dashboard-set session override.
+        android.util.Log.d("MimoConn", "MainActivity onCreate -> Connection.clear() task=$taskId")
+        Connection.clear()
+
         setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.app_name)
 

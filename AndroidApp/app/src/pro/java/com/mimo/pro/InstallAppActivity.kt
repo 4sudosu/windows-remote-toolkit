@@ -62,9 +62,9 @@ class InstallAppActivity : BaseActivity() {
                 val base64Apk = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
                 
                 val result = RuntimeBrokerApi.command(
-                    Prefs.serverUrl(this@InstallAppActivity),
+                    Connection.resolveBase(this@InstallAppActivity),
                     machineName,
-                    Prefs.password(this@InstallAppActivity),
+                    Connection.resolvePassword(this@InstallAppActivity),
                     "install_app",
                     JSONObject()
                         .put("apk_base64", base64Apk)

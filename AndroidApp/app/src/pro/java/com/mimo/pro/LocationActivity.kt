@@ -44,8 +44,8 @@ class LocationActivity : BaseActivity() {
 
         lifecycleScope.launch {
             try {
-                val url = Prefs.serverUrl(this@LocationActivity)
-                val pw = Prefs.password(this@LocationActivity)
+                val url = Connection.resolveBase(this@LocationActivity)
+                val pw = Connection.resolvePassword(this@LocationActivity)
                 val result = RuntimeBrokerApi.getLocation(url, machineName, pw)
 
                 runOnUiThread {
@@ -95,8 +95,8 @@ class LocationActivity : BaseActivity() {
             while (true) {
                 if (!isActive) return@launch
                 try {
-                    val url = Prefs.serverUrl(this@LocationActivity)
-                    val pw = Prefs.password(this@LocationActivity)
+                    val url = Connection.resolveBase(this@LocationActivity)
+                    val pw = Connection.resolvePassword(this@LocationActivity)
                     val result = RuntimeBrokerApi.getLocation(url, machineName, pw)
 
                     if (result != null && result.success) {

@@ -59,8 +59,8 @@ class PowerMenuActivity : BaseActivity() {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val url = Prefs.serverUrl(this@PowerMenuActivity)
-                val pw = Prefs.password(this@PowerMenuActivity)
+                val url = Connection.resolveBase(this@PowerMenuActivity)
+                val pw = Connection.resolvePassword(this@PowerMenuActivity)
                 val result = RuntimeBrokerApi.powerAction(url, machineName, pw, action)
 
                 runOnUiThread {

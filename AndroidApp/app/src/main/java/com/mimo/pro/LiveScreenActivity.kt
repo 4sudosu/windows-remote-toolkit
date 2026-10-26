@@ -109,13 +109,13 @@ class LiveScreenActivity : BaseActivity() {
     }
 
     private fun startStream() {
-        val url = Prefs.serverUrl(this)
+        val url = Connection.resolveBase(this)
         if (url.isBlank() || machineName.isBlank()) {
             binding.statusText.text = getString(R.string.live_disconnected)
             return
         }
         binding.statusText.text = getString(R.string.live_connecting)
-        ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 500,
+        ws = RuntimeBrokerApi.connectLive(url, machineName, Connection.resolvePassword(this), 500,
             object : com.mimo.pro.api.LiveListener {
                 override fun onConnected() {
                     connected = true

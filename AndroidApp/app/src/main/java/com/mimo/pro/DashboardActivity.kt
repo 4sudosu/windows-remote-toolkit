@@ -50,6 +50,12 @@ class DashboardActivity : BaseActivity() {
             restartPolling()
         }
 
+        // Set the session connection so DeviceActions/child action screens talk
+        // to this dashboard's server (extras) instead of stale Prefs values.
+        val base = intent.getStringExtra(EXTRA_BASE_URL)?.ifBlank { null } ?: Prefs.serverUrl(this)
+        val pwd = intent.getStringExtra(EXTRA_PASSWORD)?.ifBlank { null } ?: Prefs.password(this)
+        Connection.setForDashboard(base, pwd)
+
         startPolling()
     }
 

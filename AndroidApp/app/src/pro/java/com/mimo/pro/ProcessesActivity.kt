@@ -58,9 +58,9 @@ class ProcessesActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.loading)
             binding.emptyText.visibility = View.GONE
             val result = RuntimeBrokerApi.listProcesses(
-                Prefs.serverUrl(this@ProcessesActivity),
+                Connection.resolveBase(this@ProcessesActivity),
                 machineName,
-                Prefs.password(this@ProcessesActivity)
+                Connection.resolvePassword(this@ProcessesActivity)
             )
             if (result.success) {
                 val arr = result.data as? JSONArray
@@ -131,9 +131,9 @@ class ProcessesActivity : BaseActivity() {
         killJob?.cancel()
         killJob = lifecycleScope.launch {
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@ProcessesActivity),
+                Connection.resolveBase(this@ProcessesActivity),
                 machineName,
-                Prefs.password(this@ProcessesActivity),
+                Connection.resolvePassword(this@ProcessesActivity),
                 "kill_process",
                 org.json.JSONObject().put("pid", entry.pid)
             )

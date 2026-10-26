@@ -116,12 +116,12 @@ class TransferFilesActivity : BaseActivity() {
                     val timeoutSec = (bytes.size / (1024 * 1024) + 3) * 60
 
                     val result = RuntimeBrokerApi.command(
-                        Prefs.serverUrl(this@TransferFilesActivity),
+                        Connection.resolveBase(this@TransferFilesActivity),
                         machineName,
-                        Prefs.password(this@TransferFilesActivity),
+                        Connection.resolvePassword(this@TransferFilesActivity),
                         "transfer_file",
                         JSONObject()
-                            .put("file_base64", base64File)
+                            .put("base64", base64File)
                             .put("filename", uri.lastPathSegment ?: "file")
                             .put("timeoutSec", timeoutSec)
                     )

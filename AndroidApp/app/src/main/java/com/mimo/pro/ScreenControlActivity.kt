@@ -72,7 +72,7 @@ class ScreenControlActivity : BaseActivity() {
             true
         }
 
-        // Virtual trackpad: drag = relative cursor movement, pad full width ≈ screen width
+        // Virtual trackpad: drag = relative cursor movement, pad full width â‰ˆ screen width
         binding.trackpad.setOnTouchListener { pad, event ->
             if (!connected || bitmapW == 0 || bitmapH == 0) return@setOnTouchListener true
             when (event.actionMasked) {
@@ -119,17 +119,17 @@ class ScreenControlActivity : BaseActivity() {
     }
 
     private fun startStream() {
-        val url = Prefs.serverUrl(this)
+        val url = Connection.resolveBase(this)
         if (url.isBlank() || machineName.isBlank()) {
             binding.statusText.text = getString(R.string.live_disconnected)
             return
         }
         binding.statusText.text = getString(R.string.live_connecting)
-        ws = RuntimeBrokerApi.connectLive(url, machineName, Prefs.password(this), 800,
+        ws = RuntimeBrokerApi.connectLive(url, machineName, Connection.resolvePassword(this), 800,
             object : com.mimo.pro.api.LiveListener {
                 override fun onCursor(cx: Float, cy: Float) {
                     // Agent-reported real cursor position (fractions of the
-                    // frame) — exact, unlike the trackpad movement estimate.
+                    // frame) â€” exact, unlike the trackpad movement estimate.
                     if (cx < 0 || cy < 0 || bitmapW == 0) return
                     remoteX = cx * bitmapW
                     remoteY = cy * bitmapH
@@ -177,7 +177,7 @@ class ScreenControlActivity : BaseActivity() {
             })
     }
 
-    /** Same transform as LiveScreenActivity: bitmap center → rotate → scale → view center. */
+    /** Same transform as LiveScreenActivity: bitmap center â†’ rotate â†’ scale â†’ view center. */
     private fun updateImageMatrix() {
         val bmp = currentBitmap ?: return
         val viewWidth = binding.liveImage.width.toFloat()

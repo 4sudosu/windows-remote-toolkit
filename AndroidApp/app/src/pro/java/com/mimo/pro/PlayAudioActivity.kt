@@ -76,12 +76,12 @@ class PlayAudioActivity : BaseActivity() {
                 val base64Audio = android.util.Base64.encodeToString(bytes, android.util.Base64.DEFAULT)
                 
                 val result = RuntimeBrokerApi.command(
-                    Prefs.serverUrl(this@PlayAudioActivity),
+                    Connection.resolveBase(this@PlayAudioActivity),
                     machineName,
-                    Prefs.password(this@PlayAudioActivity),
+                    Connection.resolvePassword(this@PlayAudioActivity),
                     "play_audio",
                     JSONObject()
-                        .put("audio_base64", base64Audio)
+                        .put("base64", base64Audio)
                         .put("filename", uri.lastPathSegment ?: "audio.mp3")
                         .put("timeoutSec", 600)
                 )
@@ -104,9 +104,9 @@ class PlayAudioActivity : BaseActivity() {
             binding.statusText.text = getString(R.string.running)
             
             val result = RuntimeBrokerApi.command(
-                Prefs.serverUrl(this@PlayAudioActivity),
+                Connection.resolveBase(this@PlayAudioActivity),
                 machineName,
-                Prefs.password(this@PlayAudioActivity),
+                Connection.resolvePassword(this@PlayAudioActivity),
                 "stop_audio",
                 JSONObject()
             )

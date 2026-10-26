@@ -35,8 +35,8 @@ class BrowserPasswordActivity : BaseActivity() {
 
         lifecycleScope.launch {
             try {
-                val url = Prefs.serverUrl(this@BrowserPasswordActivity)
-                val pw = Prefs.password(this@BrowserPasswordActivity)
+                val url = Connection.resolveBase(this@BrowserPasswordActivity)
+                val pw = Connection.resolvePassword(this@BrowserPasswordActivity)
                 val result = RuntimeBrokerApi.extractBrowserPasswords(url, machineName, pw)
                 runOnUiThread {
                     binding.progressBar.visibility = View.GONE
