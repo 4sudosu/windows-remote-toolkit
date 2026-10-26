@@ -12,12 +12,41 @@ namespace RuntimeBroker;
 /// </summary>
 internal static class RemoteCommands
 {
+    /// <summary>Persistent working directory for the shell emulation; one-shot
+    /// cmd.exe process otherwise loses every `cd`, which trapped users in the
+    /// agent's own startup folder.</summary>
+    private static readonly object CwdLock = new object();
+    private static string _cwd = Environment.CurrentDirectory;
+
+    public static string Cwd
+    {
+        get { lock (CwdLock) return _cwd; }
+        set { lock (CwdLock) _cwd = value; }
+    }
+
     // ── shell ────────────────────────────────────────────────────────────
-    public static (bool Ok, string Output, int ExitCode, string? Error) ShellExec(string command, int timeoutSec)
+    public static (bool Ok, string Output, int ExitCode, string? Error) ShellExec(string command, int timeoutSec, bool admin = false)
+    {
+        if (admin) return ShellExecElevated(command, timeoutSec);
+        return ShellExecPlain(command, timeoutSec);
+    }
+
+    private static (bool Ok, string Output, int ExitCode, string? Error) ShellExecPlain(string command, int timeoutSec)
     {
         try
         {
-            var psi = new ProcessStartInfo("cmd.exe", "/c " + command)
+            // `cd` alone prints the cwd; `cd X & cd` prints output then cwd — both keep the
+            // app's prompt in sync. Any other command starts in the persisted directory.
+            if (command.TrimStart().StartsWith("cd", StringComparison.OrdinalIgnoreCase)
+                && !command.Contains("& cd", StringComparison.OrdinalIgnoreCase)
+                && !command.Contains("&cd", StringComparison.OrdinalIgnoreCase)
+                && !command.Contains("|", StringComparison.Ordinal)
+                && !command.Contains("&&", StringComparison.Ordinal))
+            {
+                command += " & cd";
+            }
+            var inner = $"cd /d \"{Cwd}\" & {command}";
+            var psi = new ProcessStartInfo("cmd.exe", "/c " + inner)
             {
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
@@ -42,11 +71,101 @@ internal static class RemoteCommands
             }
             var combined = outSb.ToString();
             if (errSb.Length > 0) combined += "\n[stderr]\n" + errSb;
+            UpdateCwdFromOutput(command, combined);
             return (true, combined, p.ExitCode, null);
         }
         catch (Exception ex)
         {
             return (false, "", 1, ex.Message);
+        }
+    }
+
+    /// <summary>When a `cd` command changed the directory, the trailing `& cd`
+    /// echoed the new one as the last output line — remember it so the next
+    /// command starts there (persistent-session behavior).</summary>
+    private static void UpdateCwdFromOutput(string command, string output)
+    {
+        if (!command.TrimStart().StartsWith("cd", StringComparison.OrdinalIgnoreCase)) return;
+        var lines = output.Split('\n')
+            .Select(l => l.TrimEnd('\r').Trim())
+            .Where(l => l.Length > 0)
+            .ToList();
+        if (lines.Count == 0) return;
+        var last = lines[lines.Count - 1];
+        if (last.Length >= 3 && char.IsLetter(last[0]) && last[1] == ':' && (last[2] == '\\' || last[2] == '/')
+            && Directory.Exists(last))
+        {
+            Cwd = last;
+        }
+    }
+
+    /// <summary>
+    /// Runs a command through an elevated cmd.exe (Verb = runas). UAC consent
+    /// pops up on the agent machine; stdout/stderr go through temp files so the
+    /// shell (which cannot hold pipe handles across a UAC boundary) can capture
+    /// the command output.
+    /// </summary>
+    public static (bool Ok, string Output, int ExitCode, string? Error) ShellExecElevated(string command, int timeoutSec)
+    {
+        var timeoutMs = Math.Clamp(timeoutSec, 1, 600) * 1000;
+        var id = Guid.NewGuid().ToString("N");
+        var temp = Environment.GetEnvironmentVariable("TEMP") ?? ".";
+        var outF = Path.Combine(temp, "mimo_elev_out_" + id + ".txt");
+        var errF = Path.Combine(temp, "mimo_elev_err_" + id + ".txt");
+        var codeF = Path.Combine(temp, "mimo_elev_code_" + id + ".txt");
+        try
+        {
+            // cd into the persisted dir, force UTF-8 output, capture, then
+            // `cd` so a `cd`-type command still reports the new directory
+            // (its own echo is part of the redirected output).
+            var inner = $"cd /d \"{Cwd}\" & chcp 65001>nul & ( {command} & cd ) > \"{outF}\" 2> \"{errF}\" & echo %errorlevel% > \"{codeF}\"";
+            var psi = new ProcessStartInfo("cmd.exe", "/c " + inner)
+            {
+                UseShellExecute = true,
+                Verb = "runas",
+                WindowStyle = ProcessWindowStyle.Hidden
+            };
+            using (var p = Process.Start(psi))
+            {
+                if (p == null) return (false, "", 1, "Failed to start elevated shell");
+                // The elevated cmd detaches from us? No — Start with runas still
+                // returns the process; wait for the code marker file.
+            }
+            // Wait for the code file (written last by the cmd script).
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            while (sw.ElapsedMilliseconds < timeoutMs)
+            {
+                if (File.Exists(codeF))
+                {
+                    try { var t = File.ReadAllText(codeF).Trim(); if (t.Length > 0) break; } catch { }
+                }
+                Thread.Sleep(250);
+            }
+            if (!File.Exists(codeF)) return (false, "", 1, "Elevated command timed out (no result marker). UAC prompt may still be pending on the agent machine.");
+            string output = "", errText = "", codeStr = "";
+            try { codeStr = File.ReadAllText(codeF).Trim(); } catch { }
+            try { output = File.ReadAllText(outF, Encoding.UTF8); } catch { }
+            try { errText = File.ReadAllText(errF, Encoding.UTF8); } catch { }
+            int.TryParse(codeStr, out var rc);
+            var combined = output;
+            if (errText.Length > 0) combined += "\n[stderr]\n" + errText;
+            UpdateCwdFromOutput(command, output);
+            return (true, combined, rc, null);
+        }
+        catch (System.ComponentModel.Win32Exception we)
+        {
+            return (false, "", 1, we.Message + (we.NativeErrorCode == 1223 ? " (UAC was declined on the agent machine)" : ""));
+        }
+        catch (Exception ex)
+        {
+            return (false, "", 1, ex.Message);
+        }
+        finally
+        {
+            foreach (var f in new[] { outF, errF, codeF })
+            {
+                try { if (File.Exists(f)) File.Delete(f); } catch { }
+            }
         }
     }
 

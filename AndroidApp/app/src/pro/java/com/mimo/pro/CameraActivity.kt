@@ -85,12 +85,23 @@ class CameraActivity : BaseActivity() {
                 JSONObject().put("seconds", seconds()).put("timeoutSec", seconds() + 90)
             )
             setBusy(false)
-            if (result.success && !result.output.isNullOrBlank()) {
-                val name = "wsm-camera-${System.currentTimeMillis()}.mp4"
-                val uri = MediaSaver.save(this@CameraActivity, "video/mp4", name, result.output, "camera")
+            // Big results arrive by HTTP "ref" download instead of inline base64.
+            val b64: String? = if (result.success && !result.ref.isNullOrBlank()) {
+                val bytes = RuntimeBrokerApi.downloadRef(
+                    Connection.resolveBase(this@CameraActivity),
+                    Connection.resolvePassword(this@CameraActivity),
+                    result.ref!!
+                )
+                bytes?.let { Base64.encodeToString(it, Base64.NO_WRAP) }
+            } else result.output
+            if (result.success && !b64.isNullOrBlank()) {
+                val ext = if ((result.mime ?: "").contains("avi", ignoreCase = true)) "avi" else "mp4"
+                val mime = result.mime ?: "video/mp4"
+                val name = "wsm-camera-${System.currentTimeMillis()}.$ext"
+                val uri = MediaSaver.save(this@CameraActivity, mime, name, b64, "camera")
                 if (uri != null) {
                     lastUri = uri
-                    lastMime = "video/mp4"
+                    lastMime = mime
                     binding.btnOpen.isEnabled = true
                     binding.statusText.text = getString(R.string.video_saved)
                     Toast.makeText(this@CameraActivity, R.string.video_saved, Toast.LENGTH_SHORT).show()

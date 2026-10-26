@@ -25,7 +25,12 @@ data class CommandResult(
     val output: String?,
     val data: Any?,
     val exitCode: Int,
-    val error: String?
+    val error: String?,
+    /** Set when a big result (camera video, big capture) was uploaded over
+     *  HTTP instead of the WebSocket: download `${base}/api/file/${ref}`. */
+    val ref: String? = null,
+    val filename: String? = null,
+    val mime: String? = null
 )
 
 interface LiveListener {

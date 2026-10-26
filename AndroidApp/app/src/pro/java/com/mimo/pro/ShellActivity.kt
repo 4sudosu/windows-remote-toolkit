@@ -29,6 +29,7 @@ class ShellActivity : BaseActivity() {
 
     private var machineName = ""
     private var runJob: Job? = null
+    private var adminMode = false
     private var history = StringBuilder()
     private var commandHistory = mutableListOf<String>()
     private var historyIndex = -1
@@ -74,7 +75,7 @@ class ShellActivity : BaseActivity() {
                 machineName,
                 Connection.resolvePassword(this@ShellActivity),
                 "cd /d C:\\Windows\\System32",
-                true
+                false
             )
             if (result.success) {
                 cwd = result.output?.trim()?.lines()?.lastOrNull { it.isNotBlank() } ?: ""
@@ -88,6 +89,14 @@ class ShellActivity : BaseActivity() {
             binding.commandInput.requestFocus()
             val imm = getSystemService(Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager
             imm.showSoftInput(binding.commandInput, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        // ADMIN toggle: when on, each command runs elevated (UAC prompt on PC).
+        updateAdminChip()
+        binding.btnAdmin.setOnClickListener {
+            adminMode = !adminMode
+            updateAdminChip()
+            Toast.makeText(this, if (adminMode) "Admin shell ON" else "Admin shell OFF", Toast.LENGTH_SHORT).show()
         }
 
         binding.commandInput.setOnEditorActionListener { _, _, _ ->
@@ -204,6 +213,11 @@ class ShellActivity : BaseActivity() {
         binding.promptText.text = if (cwd.isBlank()) getString(R.string.shell_prompt) else "$cwd>"
     }
 
+    private fun updateAdminChip() {
+        binding.btnAdmin.isChecked = adminMode
+        binding.btnAdmin.text = if (adminMode) "ADMIN ✓" else "ADMIN"
+    }
+
     private fun runQuick(command: String) {
         binding.commandInput.setText(command)
         binding.commandInput.setSelection(command.length)
@@ -253,7 +267,7 @@ class ShellActivity : BaseActivity() {
                 machineName,
                 Connection.resolvePassword(this@ShellActivity),
                 effective,
-                true
+                adminMode
             )
             ticker.cancel()
             history.append("${getString(R.string.shell_prompt)} $command\n")

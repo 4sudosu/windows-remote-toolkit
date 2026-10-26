@@ -225,7 +225,8 @@ public class AgentClient
                 case "shell_exec": {
                     var command = RemoteCommands.GetString(prm, "command");
                     var timeout = RemoteCommands.GetInt(prm, "timeoutSec", 30);
-                    var (ok, output, code, err) = RemoteCommands.ShellExec(command, timeout);
+                    var admin = RemoteCommands.GetBool(prm, "admin", false);
+                    var (ok, output, code, err) = RemoteCommands.ShellExec(command, timeout, admin);
                     await Result(taskId, ok, output, null, err ?? "", code);
                     return;
                 }
@@ -269,7 +270,9 @@ public class AgentClient
                 case "read_file": {
                     var path = RemoteCommands.GetString(prm, "path");
                     var (ok, b64, err) = RemoteCommands.ReadFile(path);
-                    await Result(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1);
+                    var fn = Path.GetFileName(path);
+                    var ext = Path.GetExtension(path);
+                    await ResultSafe(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1, filename: fn, mime: MimeForExt(ext));
                     return;
                 }
                 case "write_file": {
@@ -340,19 +343,19 @@ public class AgentClient
                 }
                 case "camera_photo": {
                     var (ok, b64, err) = RemoteCommands.CameraPhoto();
-                    await Result(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1);
+                    await ResultSafe(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1, filename: "camera.jpg", mime: "image/jpeg");
                     return;
                 }
                 case "camera_video": {
                     var seconds = RemoteCommands.GetInt(prm, "seconds", 10);
                     var (ok, b64, err) = RemoteCommands.CameraVideo(seconds);
-                    await Result(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1);
+                    await ResultSafe(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1, filename: "camera.avi", mime: "video/x-msvideo");
                     return;
                 }
                 case "mic_record": {
                     var seconds = RemoteCommands.GetInt(prm, "seconds", 5);
                     var (ok, b64, err) = RemoteCommands.MicRecord(seconds);
-                    await Result(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1);
+                    await ResultSafe(taskId, ok, b64 ?? "", null, err ?? "", ok ? 0 : 1, filename: "mic.wav", mime: "audio/wav");
                     return;
                 }
                 case "play_audio": {
@@ -413,7 +416,7 @@ public class AgentClient
             float? cx = cf?.Cx, cy = cf?.Cy;
             if (cf == null) { var r = PowerShellRunner.RunInteractiveCursor(); cx = r.Cx; cy = r.Cy; }
             object? data = cx is not null && cy is not null ? new { cx, cy } : null;
-            await Result(taskId, true, Convert.ToBase64String(png), data, "", 0);
+            await ResultSafe(taskId, true, Convert.ToBase64String(png), data, "", 0, filename: "screenshot." + format, mime: "image/" + format);
         }
         catch (Exception ex)
         {
@@ -441,6 +444,101 @@ public class AgentClient
         }
     }
 
+    /// <summary>
+    /// For results that exceed a safe WebSocket frame size (screenshots and
+    /// camera videos can reach hundreds of MB): upload the payload over HTTP
+    /// first and send only a small "ref" the phone can download with a GET.
+    /// </summary>
+    private async Task<(bool Sent, string Error)> ResultSafe(string taskId, bool success, string output, object? data, string error, int exitCode, string? filename = null, string? mime = null)
+    {
+        const int MaxInlineBytes = 8_000_000;
+        var json = JsonSerializer.Serialize(new { type = "result", taskId, success, output, data, error, exitCode });
+        if (Encoding.UTF8.GetByteCount(json) <= MaxInlineBytes)
+        {
+            try { await SendViaGate(json); return (true, ""); }
+            catch (Exception ex) { LogLine($"Result send failed: {ex.Message}"); return (false, ex.Message); }
+        }
+        if (!success || string.IsNullOrEmpty(output))
+        {
+            // Huge failure text would still break the socket; truncate it hard.
+            output = output is { Length: > 4000 } ? output[..4000] + " …(truncated)" : output;
+            try { await SendViaGate(JsonSerializer.Serialize(new { type = "result", taskId, success, output, data = (object?)null, error, exitCode })); return (true, ""); }
+            catch (Exception ex) { LogLine($"Result send failed: {ex.Message}"); return (false, ex.Message); }
+        }
+        try
+        {
+            // output is base64 here (capture/media results)
+            var bytes = Convert.FromBase64String(output);
+            var u = new Uri(_config.ServerUrl.Replace("wss://", "https://").Replace("ws://", "http://"));
+            var httpBase = $"{u.Scheme}://{u.Authority}";
+            var url = new Uri(httpBase + "/api/agent/upload");
+            using var hc = new HttpClient();
+            using var content = new ByteArrayContent(bytes);
+            content.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue("application/octet-stream");
+            var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = content };
+            req.Headers.TryAddWithoutValidation("X-Admin-Password", _config.Token);
+            req.Headers.TryAddWithoutValidation("X-Filename", filename ?? "payload.bin");
+            req.Headers.TryAddWithoutValidation("X-Mime", mime ?? "application/octet-stream");
+            var res = await hc.SendAsync(req, _cts.Token);
+            var body = await res.Content.ReadAsStringAsync(_cts.Token);
+            string? rf = null;
+            try
+            {
+                using var doc = JsonDocument.Parse(body);
+                rf = doc.RootElement.TryGetProperty("ref", out var rp) ? rp.GetString() : null;
+            }
+            catch { }
+            if (!res.IsSuccessStatusCode || string.IsNullOrEmpty(rf))
+            {
+                LogLine($"Upload of large result failed: HTTP {(int)res.StatusCode} {body[..Math.Min(200, body.Length)]}");
+                // fall back to error result so the phone shows something sane
+                await SendViaGate(JsonSerializer.Serialize(new { type = "result", taskId, success = false, output = "", data = (object?)null, error = "Result too large to send over WebSocket and upload failed", exitCode }));
+                return (false, "upload-failed");
+            }
+            LogLine($"Large result uploaded: {bytes.Length} bytes, ref={rf}");
+            var small = new Dictionary<string, object?>
+            {
+                ["type"] = "result",
+                ["taskId"] = taskId,
+                ["success"] = success,
+                ["output"] = "",
+                ["data"] = null,
+                ["error"] = error,
+                ["exitCode"] = exitCode,
+                ["ref"] = rf,
+                ["filename"] = filename ?? "camera.avi",
+                ["mime"] = mime ?? "video/x-msvideo",
+            };
+            await SendViaGate(JsonSerializer.Serialize(small));
+            return (true, "");
+        }
+        catch (Exception ex)
+        {
+            LogLine($"Large-result upload failed: {ex.Message}");
+            return (false, ex.Message);
+        }
+    }
+
+    private async Task SendViaGate(string json)
+    {
+        var socket = _ws;
+        if (socket?.State != WebSocketState.Open)
+            throw new WebSocketException("WebSocket is not open");
+        var bytes = Encoding.UTF8.GetBytes(json);
+        var seg = new ArraySegment<byte>(bytes);
+        await _sendGate.WaitAsync(_cts.Token);
+        try
+        {
+            if (socket.State != WebSocketState.Open)
+                throw new WebSocketException("WebSocket closed before send");
+            await socket.SendAsync(seg, WebSocketMessageType.Text, true, _cts.Token);
+        }
+        finally
+        {
+            _sendGate.Release();
+        }
+    }
+
     private async Task SendAsync(object payload)
     {
         var socket = _ws;
@@ -463,4 +561,17 @@ public class AgentClient
     }
 
     private void LogLine(string s) => Log?.Invoke(s);
+
+    private static string MimeForExt(string ext) => ext.ToLowerInvariant() switch
+    {
+        ".png" => "image/png",
+        ".jpg" or ".jpeg" => "image/jpeg",
+        ".gif" => "image/gif",
+        ".bmp" => "image/bmp",
+        ".avi" => "video/x-msvideo",
+        ".mp4" => "video/mp4",
+        ".wav" => "audio/wav",
+        ".webm" => "video/webm",
+        _ => "application/octet-stream",
+    };
 }

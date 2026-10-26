@@ -180,6 +180,16 @@
                 android:text="@string/key_ctrl_c"
                 android:textColor="@color/error_red"
                 android:textSize="12sp" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnAdmin"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:minWidth="0dp"
+                android:text="ADMIN"
+                android:textSize="12sp" />
         </LinearLayout>
     </HorizontalScrollView>
 </LinearLayout>

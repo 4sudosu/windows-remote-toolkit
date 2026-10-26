@@ -69,7 +69,10 @@ object RuntimeBrokerApi {
                     output = obj.optString("output").ifBlank { null },
                     data = obj.opt("data"),
                     exitCode = obj.optInt("exitCode"),
-                    error = obj.optString("error").ifBlank { null }
+                    error = obj.optString("error").ifBlank { null },
+                    ref = obj.optString("ref").ifBlank { null },
+                    filename = obj.optString("filename").ifBlank { null },
+                    mime = obj.optString("mime").ifBlank { null }
                 )
             }
         } catch (e: Exception) {
@@ -82,6 +85,26 @@ object RuntimeBrokerApi {
             .put("command", command)
             .put("timeoutSec", timeoutSec)
             .put("admin", admin))
+
+    /** Downloads a large-result payload uploaded by the agent (by ref). */
+    suspend fun downloadRef(baseUrl: String, password: String, ref: String): ByteArray? =
+        withContext(Dispatchers.IO) {
+            try {
+                val url = baseUrl.trimEnd('/') + "/api/file/" + URLEncoder.encode(ref, "UTF-8")
+                val request = Request.Builder()
+                    .url(url)
+                    .header("X-Admin-Password", password)
+                    .get()
+                    .build()
+                client.newBuilder().callTimeout(300, TimeUnit.SECONDS).build()
+                    .newCall(request).execute().use { resp ->
+                        if (!resp.isSuccessful) return@withContext null
+                        resp.body?.bytes()
+                    }
+            } catch (e: Exception) {
+                null
+            }
+        }
 
     suspend fun shell(baseUrl: String, machineName: String, password: String, command: String, timeoutSec: Int = 30): CommandResult =
         shell(baseUrl, machineName, password, command, false, timeoutSec)

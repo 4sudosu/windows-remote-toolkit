@@ -139,6 +139,58 @@ internal static class MediaCapture
     }
 
     // ── camera video → AVI (seconds) ─────────────────────────────────────
+    /// <summary>
+    /// Best effort: pick a capture format that keeps the file small — an MJPEG
+    /// stream if the device offers one, else the smallest RGB24 format.
+    /// Silently does nothing when the device rejects it (raw fallback).
+    /// </summary>
+    private static void TrySetSmallerCaptureFormat(ICaptureGraphBuilder2 builder, IBaseFilter source)
+    {
+        IPin? cap = null, chosen = null;
+        try
+        {
+            cap = DsFindPin.ByCategory(source, PinCategory.Capture, 0)
+                  ?? DsFindPin.ByCategory(source, PinCategory.Preview, 0);
+            if (cap is not IAMStreamConfig cfg) return;
+            cfg.GetNumberOfCapabilities(out int count, out _);
+            AMMediaType? best = null;
+            for (int i = 0; i < count && i < 64; i++)
+            {
+                var mt = new AMMediaType();
+                var caps = Marshal.AllocCoTaskMem(2048);
+                try
+                {
+                    if (cfg.GetStreamCaps(i, out mt, caps) < 0) continue;
+                    if (mt.subType == MediaSubType.MJPG)
+                    {
+                        best = mt; break;      // compressed — best option
+                    }
+                    var wi = mt.formatType == FormatType.VideoInfo
+                        ? Marshal.PtrToStructure<VideoInfoHeader>(mt.formatPtr) : null;
+                    if (wi != null && wi.BmiHeader.Width is int w && w > 0 && w <= 640)
+                    {
+                        if (best == null || mt.subType == MediaSubType.RGB24)
+                            { DsUtils.FreeAMMediaType(best); best = mt; continue; }
+                    }
+                    DsUtils.FreeAMMediaType(mt);
+                }
+                catch { DsUtils.FreeAMMediaType(mt); }
+                finally { Marshal.FreeCoTaskMem(caps); }
+            }
+            if (best != null)
+            {
+                try { cfg.SetFormat(best); } catch { }
+                DsUtils.FreeAMMediaType(best);
+            }
+        }
+        catch { }
+        finally
+        {
+            foreach (var p in new[] { cap, chosen })
+                try { if (p != null) Marshal.ReleaseComObject(p); } catch { }
+        }
+    }
+
     public static byte[]? CameraVideoAvi(int seconds)
     {
         IFilterGraph2? graph = null;
@@ -158,6 +210,7 @@ internal static class MediaCapture
             builder.SetFiltergraph(graph);
             int hr = graph.AddSourceFilterForMoniker(devs[0].Mon, null, devs[0].Name, out source);
             DsError.ThrowExceptionForHR(hr);
+            TrySetSmallerCaptureFormat(builder, source);
             // SetOutputFileName creates + inserts its own mux; do not add one manually.
             hr = builder.SetOutputFileName(MediaSubType.Avi, tmp, out mux, out sink);
             DsError.ThrowExceptionForHR(hr);
