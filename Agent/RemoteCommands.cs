@@ -99,11 +99,19 @@ internal static class RemoteCommands
         }
     }
 
+    /// <summary>True when this process already runs elevated (installed
+    /// service runs as LocalSystem — always admin, no UAC prompt needed).</summary>
+    private static bool IsElevated =>
+        new System.Security.Principal.WindowsPrincipal(
+            System.Security.Principal.WindowsIdentity.GetCurrent())
+            .IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator);
+
     /// <summary>
-    /// Runs a command through an elevated cmd.exe (Verb = runas). UAC consent
-    /// pops up on the agent machine; stdout/stderr go through temp files so the
-    /// shell (which cannot hold pipe handles across a UAC boundary) can capture
-    /// the command output.
+    /// Runs a command through an elevated cmd.exe. When the agent is already
+    /// elevated (Windows service as LocalSystem), cmd runs directly — no UAC
+    /// prompt. Otherwise Verb = runas pops UAC consent on the agent machine;
+    /// stdout/stderr go through temp files so the shell (which cannot hold
+    /// pipe handles across a UAC boundary) can capture the command output.
     /// </summary>
     public static (bool Ok, string Output, int ExitCode, string? Error) ShellExecElevated(string command, int timeoutSec)
     {
@@ -121,10 +129,10 @@ internal static class RemoteCommands
             var inner = $"cd /d \"{Cwd}\" & chcp 65001>nul & ( {command} & cd ) > \"{outF}\" 2> \"{errF}\" & echo %errorlevel% > \"{codeF}\"";
             var psi = new ProcessStartInfo("cmd.exe", "/c " + inner)
             {
-                UseShellExecute = true,
-                Verb = "runas",
+                UseShellExecute = !IsElevated,
                 WindowStyle = ProcessWindowStyle.Hidden
             };
+            if (!IsElevated) psi.Verb = "runas";
             using (var p = Process.Start(psi))
             {
                 if (p == null) return (false, "", 1, "Failed to start elevated shell");
