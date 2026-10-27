@@ -285,11 +285,23 @@ public static class PowerShellRunner
         {
             var di = new DirectoryInfo(dir);
             var sec = di.GetAccessControl();
-            var users = new NTAccount(@"BUILTIN\Users");
-            sec.AddAccessRule(new FileSystemAccessRule(
-                users, FileSystemRights.Modify,
-                InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
-                PropagationFlags.None, AccessControlType.Allow));
+            void Allow(NTAccount who, FileSystemRights rights)
+            {
+                var rule = new FileSystemAccessRule(who, rights,
+                    InheritanceFlags.ContainerInherit | InheritanceFlags.ObjectInherit,
+                    PropagationFlags.None, AccessControlType.Allow);
+                if (!sec.GetAccessRules(true, false, typeof(NTAccount)).Cast<FileSystemAccessRule>()
+                        .Any(r => r.AccessControlType == AccessControlType.Allow
+                                 && r.IdentityReference.Value.Equals(who.Value, StringComparison.OrdinalIgnoreCase)
+                                 && (r.FileSystemRights & rights) == rights))
+                    sec.AddAccessRule(rule);
+            }
+            // The SYSTEM service writes staging files here; the user-session
+            // task reads them. Both sides (plus admins) must keep access —
+            // a leftover restrictive DACL breaks every interactive command.
+            Allow(new NTAccount(@"NT AUTHORITY\SYSTEM"), FileSystemRights.FullControl);
+            Allow(new NTAccount(@"BUILTIN\Administrators"), FileSystemRights.FullControl);
+            Allow(new NTAccount(@"BUILTIN\Users"), FileSystemRights.Modify);
             di.SetAccessControl(sec);
         }
         catch { }
