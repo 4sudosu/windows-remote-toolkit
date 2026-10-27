@@ -64,8 +64,11 @@
  <string name="cat_ram">By RAM</string>
  <string name="launcher_status_none">No server configured yet</string>
  <string name="gemini_open">Open Gemini</string>
- <string name="screen_control_hint">Drag on trackpad to move cursor - Left/Right click buttons - Zoom In/Out above trackpad</string>
- <string name="trackpad_label">Trackpad</string>
+ <string name="screen_control_hint">Arrow buttons move the cursor; Zoom In/Out magnify the preview</string>
+ <string name="move_up">Up</string>
+ <string name="move_down">Down</string>
+ <string name="move_left">Left</string>
+ <string name="move_right">Right</string>
  <string name="zoom_in">Zoom In</string>
  <string name="zoom_out">Zoom Out</string>
  <string name="processes_title">Task Manager</string>

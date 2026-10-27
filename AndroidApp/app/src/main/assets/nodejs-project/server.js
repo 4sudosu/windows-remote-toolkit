@@ -357,7 +357,8 @@ app.post('/api/monitor/:machineName/command', async (req, res) => {
     'list_files', 'read_file', 'write_file', 'input_text', 'input_mouse',
     'input_paragraph', 'screen_rotate', 'capture_screenshot',
     'camera_photo', 'camera_video', 'mic_record',
-    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all'
+    'play_audio', 'stop_audio', 'transfer_file', 'stop_typing', 'stop_all',
+    'power_action', 'install_app'
   ]);
   if (!allowed.has(cmd)) return res.status(400).json({ success: false, error: 'Unknown command: ' + cmd });
 

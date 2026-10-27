@@ -33,7 +33,6 @@ class ScreenControlActivity : BaseActivity() {
     private var remoteY = -1f
     private var downX = 0f
     private var downY = 0f
-    private var lastMoveMs = 0L
 
     private var zoomScale = 1f
     private var panX = 0f
@@ -72,36 +71,12 @@ class ScreenControlActivity : BaseActivity() {
             true
         }
 
-        // Virtual trackpad: drag = relative cursor movement, pad full width â‰ˆ screen width
-        binding.trackpad.setOnTouchListener { pad, event ->
-            if (!connected || bitmapW == 0 || bitmapH == 0) return@setOnTouchListener true
-            when (event.actionMasked) {
-                MotionEvent.ACTION_DOWN -> {
-                    downX = event.x
-                    downY = event.y
-                    if (remoteX < 0 || remoteY < 0) {
-                        remoteX = bitmapW / 2f
-                        remoteY = bitmapH / 2f
-                    }
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    val scale = bitmapW / pad.width.coerceAtLeast(1).toFloat()
-                    val dx = (event.x - downX) * scale
-                    val dy = (event.y - downY) * scale
-                    downX = event.x
-                    downY = event.y
-                    remoteX = (remoteX + dx).coerceIn(0f, bitmapW - 1f)
-                    remoteY = (remoteY + dy).coerceIn(0f, bitmapH - 1f)
-                    val now = System.currentTimeMillis()
-                    if (now - lastMoveMs >= 40) {
-                        lastMoveMs = now
-                        sendMouse("move")
-                    }
-                    showPointer()
-                }
-            }
-            true
-        }
+        // Cursor is moved with the four arrow buttons below the preview;
+        // dragging only pans while zoomed.
+        binding.btnMoveUp.setOnClickListener { nudge(0, -1) }
+        binding.btnMoveDown.setOnClickListener { nudge(0, 1) }
+        binding.btnMoveLeft.setOnClickListener { nudge(-1, 0) }
+        binding.btnMoveRight.setOnClickListener { nudge(1, 0) }
 
         binding.btnStop.setOnClickListener { finish() }
         binding.btnLeft.setOnClickListener { sendMouse("left") }
@@ -249,6 +224,16 @@ class ScreenControlActivity : BaseActivity() {
         binding.statusText.text = getString(R.string.rotate_ok, localRotateDegrees)
         // Re-apply matrix with the new rotation using the latest frame
         updateImageMatrix()
+    }
+
+    /** Nudge the remote cursor one step (3% of a screen dimension) per tap. */
+    private fun nudge(dx: Int, dy: Int) {
+        if (!connected || bitmapW == 0 || bitmapH == 0) return
+        if (remoteX < 0 || remoteY < 0) { remoteX = bitmapW / 2f; remoteY = bitmapH / 2f }
+        remoteX = (remoteX + dx * bitmapW * 0.03f).coerceIn(0f, bitmapW - 1f)
+        remoteY = (remoteY + dy * bitmapH * 0.03f).coerceIn(0f, bitmapH - 1f)
+        sendMouse("move")
+        showPointer()
     }
 
     private fun zoom(factor: Float) {

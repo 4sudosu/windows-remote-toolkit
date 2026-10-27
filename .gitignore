@@ -70,3 +70,7 @@ Installer/publish-setup/
 AndroidApp/*.log
 AndroidApp/u*.xml
 AndroidApp/app/libnode/bin/
+
+# Release assets live in GitHub Releases, not the repo
+Output/
+

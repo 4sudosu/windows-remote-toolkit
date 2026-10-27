@@ -76,29 +76,55 @@
         </LinearLayout>
     </FrameLayout>
 
-    <FrameLayout
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="170dp"
+        android:layout_height="150dp"
         android:layout_margin="12dp"
-        android:background="@android:color/black">
+        android:gravity="center"
+        android:orientation="horizontal">
 
-        <View
-            android:id="@+id/trackpad"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMoveLeft"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/move_left" />
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_gravity="top|start"
-            android:layout_margin="8dp"
-            android:background="@color/terminal_bg"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="3dp"
-            android:text="@string/trackpad_label"
-            android:textColor="@color/terminal_prompt"
-            android:textSize="11sp" />
-    </FrameLayout>
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="8dp"
+            android:layout_weight="2"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMoveUp"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/move_up" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMoveDown"
+                style="@style/Widget.Material3.Button.TonalButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/move_down" />
+        </LinearLayout>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnMoveRight"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="@string/move_right" />
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

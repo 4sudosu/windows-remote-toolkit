@@ -369,6 +369,64 @@ public class AgentClient
                     RemoteCommands.StopAudio();
                     await Result(taskId, true, "Audio stopped", null, "", 0);
                     return;
+                case "power_action": {
+                    var action = (RemoteCommands.GetString(prm, "action") ?? "").Trim().ToLowerInvariant();
+                    // elevated (no UAC prompt when the agent itself is elevated);
+                    // 3s grace so the result can reach the phone first
+                    var cmdText = action switch
+                    {
+                        "shutdown" or "poweroff" => "shutdown /s /t 3 /c \"Mimo remote command\"",
+                        "restart" or "reboot" => "shutdown /r /t 3",
+                        "sleep" => "rundll32 powrprof.dll,SetSuspendState 0,1,0",
+                        "hibernate" => "shutdown /h",
+                        "lock" => "rundll32 user32.dll,LockWorkStation",
+                        "logoff" => "shutdown /l",
+                        _ => "",
+                    };
+                    if (cmdText == "")
+                    {
+                        await Result(taskId, false, "", null, $"Unknown power action '{action}'", 1);
+                        return;
+                    }
+                    var (pok, pout, pcode, perr) = RemoteCommands.ShellExecElevated(cmdText, 20);
+                    await Result(taskId, pok, pout, null, perr ?? "", pcode);
+                    return;
+                }
+                case "install_app": {
+                    var b64 = RemoteCommands.GetString(prm, "apk_base64") ?? RemoteCommands.GetString(prm, "exe") ?? "";
+                    var name = RemoteCommands.GetString(prm, "filename") ?? "package.exe";
+                    var args2 = RemoteCommands.GetString(prm, "args") ?? "";
+                    if (string.IsNullOrEmpty(b64))
+                    {
+                        await Result(taskId, false, "", null, "Missing package data", 1);
+                        return;
+                    }
+                    try
+                    {
+                        // stage into the shared work dir, then run silently as admin
+                        var ext = Path.GetExtension(name);
+                        if (string.IsNullOrEmpty(ext)) ext = ".exe";
+                        var staged = Path.Combine(PowerShellRunner.CaptureWorkDir(),
+                            $"install-{Guid.NewGuid():N}{ext}");
+                        File.WriteAllBytes(staged, Convert.FromBase64String(b64));
+                        var installCmd = (Path.GetExtension(staged).ToLowerInvariant() == ".msi")
+                            ? $"msiexec /i \"{staged}\" /quiet /norestart {args2}"
+                            : $"start /wait \"\" \"{staged}\" {args2}";
+                        var (iok, iout, icode, ierr) = RemoteCommands.ShellExecElevated(installCmd, 300);
+                        try { File.Delete(staged); } catch { }
+                        await Result(taskId, iok, iok ? (iout.Length > 0 ? iout : "Install command finished") : iout, null,
+                            iok ? "" : (ierr ?? $"Install failed (exit {icode})"), icode);
+                    }
+                    catch (FormatException)
+                    {
+                        await Result(taskId, false, "", null, "Package data is not valid base64", 1);
+                    }
+                    catch (Exception ex2)
+                    {
+                        await Result(taskId, false, "", null, ex2.Message, 1);
+                    }
+                    return;
+                }
                 default:
                     await Result(taskId, false, "", null, $"Unknown command: {cmd}", 1);
                     return;
